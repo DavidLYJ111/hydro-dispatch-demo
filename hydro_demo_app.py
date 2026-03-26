@@ -96,9 +96,50 @@ def simulate_schedule(Q, inflow, price, params):
 # =========================================================
 # 2. 调度方法
 # =========================================================
-def rule_based_schedule(inflow, params):
-    Q = 0.85 * np.asarray(inflow, dtype=float)
-    Q = np.clip(Q, params["Q_min"], params["Q_max"])
+def rule_based_schedule(inflow, price, params):
+    inflow = np.asarray(inflow, dtype=float)
+    price = np.asarray(price, dtype=float)
+
+    Q_min = params["Q_min"]
+    Q_max = params["Q_max"]
+    S0 = params["S0"]
+    S_min = params["S_min"]
+    S_max = params["S_max"]
+    k_storage = params["k_storage"]
+
+    hours = len(inflow)
+    Q = np.zeros(hours)
+    S = np.zeros(hours + 1)
+    S[0] = S0
+
+    price_mean = np.mean(price)
+    price_std = np.std(price) + 1e-6
+
+    for t in range(hours):
+        # 1) 基础出流
+        q_base = 0.98 * inflow[t]
+
+        # 2) 电价修正
+        price_z = (price[t] - price_mean) / price_std
+        q_price = 40.0 * price_z
+
+        # 3) 库容修正
+        storage_ratio = (S[t] - S_min) / (S_max - S_min + 1e-6)
+        q_storage = 55.0 * (storage_ratio - 0.5)
+
+        q = q_base + q_price + q_storage
+        q = np.clip(q, Q_min, Q_max)
+
+        # 4) 平滑
+        if t > 0:
+            q = 0.7 * Q[t - 1] + 0.3 * q
+
+        Q[t] = q
+
+        # 更新库容
+        S[t + 1] = S[t] + k_storage * (inflow[t] - Q[t])
+        S[t + 1] = np.clip(S[t + 1], S_min, S_max)
+
     return Q
 
 
@@ -805,7 +846,7 @@ def run_all_methods(seed, beta_smooth, s0, smin, smax, qmin, qmax, head, eta):
 
     results = {}
 
-    Q_rule = rule_based_schedule(inflow, params)
+    Q_rule = rule_based_schedule(inflow, price, params)
     _, d_rule = simulate_schedule(Q_rule, inflow, price, params)
     results["Rule"] = {"Q": Q_rule, "detail": d_rule, "history": None}
 
@@ -886,7 +927,8 @@ st.title("“智调水电”——水电站智能优化调度可视化仿真平�
 st.caption("面向新能源消纳的演示系统")
 
 c_top1, c_top2, c_top3, c_top4 = st.columns(4)
-c_top1.metric("推荐策略", best_name)
+display_name = "APSO-LS（推荐）" if best_name == "APSO-LS" else best_name
+c_top1.metric("推荐策略", display_name)
 c_top2.metric("当前策略收益", f"{detail['revenue']:.0f} 元")
 c_top3.metric("当前策略综合目标", f"{detail['objective']:.0f}")
 c_top4.metric("平滑权重 β", f"{beta_smooth:.1f}")
