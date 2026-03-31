@@ -1,10 +1,269 @@
 import time
+import json
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="智调水电Demo", layout="wide")
+
+
+def inject_dashboard_css():
+    if "play_hour" not in st.session_state:
+        st.session_state.play_hour = 0
+    if "demo_mode" not in st.session_state:
+        st.session_state.demo_mode = False
+
+    if "demo_hour" not in st.session_state:
+        st.session_state.demo_hour = 0
+
+    if "demo_strategy_idx" not in st.session_state:
+        st.session_state.demo_strategy_idx = 0
+
+    st.markdown("""
+    <style>
+    .stApp {
+        background:
+            radial-gradient(circle at top left, rgba(110, 191, 255, 0.18), transparent 28%),
+            radial-gradient(circle at top right, rgba(116, 255, 214, 0.12), transparent 24%),
+            linear-gradient(180deg, #edf6ff 0%, #dff0ff 45%, #d7ebfb 100%);
+        color: #17324d;
+    }
+
+    .block-container {
+        padding-top: 1.0rem;
+        padding-bottom: 1.0rem;
+        max-width: 100%;
+    }
+
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0b223a 0%, #123250 100%);
+        border-right: 1px solid rgba(90, 170, 255, 0.20);
+    }
+
+    /* ⭐ 只控制普通文本，不影响输入控件 */
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] p,
+    /* ⭐ 只控制文字，不碰结构容器 */
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] .stMarkdown {
+        color: #eef7ff;
+    }
+
+    .dashboard-title {
+        padding: 16px 20px;
+        border: 1px solid rgba(102, 168, 232, 0.30);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(241,248,255,0.90));
+        box-shadow: 0 10px 28px rgba(53, 126, 189, 0.12);
+        margin-bottom: 12px;
+    }
+
+    .dashboard-title h1 {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+        color: #0f3b63;
+    }
+
+    .dashboard-title p {
+        margin: 6px 0 0 0;
+        color: #4f769a;
+        font-size: 14px;
+    }
+
+    .panel-card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(243,249,255,0.92));
+        border: 1px solid rgba(103, 173, 235, 0.28);
+        border-radius: 18px;
+        padding: 14px 14px 10px 14px;
+        box-shadow: 0 10px 24px rgba(54, 122, 183, 0.10);
+        margin-bottom: 12px;
+    }
+
+    .panel-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: #0d5588;
+        margin-bottom: 10px;
+        letter-spacing: 0.3px;
+    }
+
+    .status-chip-wrap {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+
+    .status-chip {
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(112, 192, 255, 0.10);
+        border: 1px solid rgba(93, 171, 236, 0.28);
+        color: #27597f;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    div[data-testid="metric-container"] {
+        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(244,249,255,0.94));
+        border: 1px solid rgba(98, 170, 235, 0.25);
+        border-radius: 16px;
+        padding: 10px 12px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35), 0 8px 20px rgba(62, 129, 189, 0.08);
+    }
+
+    div[data-testid="metric-container"] label {
+        color: #5a7ea0 !important;
+        font-weight: 600;
+    }
+
+    div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+        color: #183a59 !important;
+    }
+
+    .main-3d-wrap {
+        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(243,249,255,0.92));
+        border: 1px solid rgba(102, 170, 232, 0.28);
+        border-radius: 20px;
+        padding: 14px;
+        box-shadow: 0 10px 24px rgba(54, 122, 183, 0.10);
+        margin-bottom: 12px;
+    }
+
+    .main-3d-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0;
+    }
+
+    .main-3d-title-left {
+        font-size: 17px;
+        font-weight: 800;
+        color: #0f4f80;
+        letter-spacing: 0.3px;
+    }
+
+    .main-3d-title-right {
+        font-size: 12px;
+        color: #4f769a;
+        background: rgba(122, 196, 255, 0.10);
+        border: 1px solid rgba(102, 170, 232, 0.24);
+        border-radius: 999px;
+        padding: 5px 10px;
+    }
+
+    .chart-panel {
+        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(243,249,255,0.92));
+        border: 1px solid rgba(102, 170, 232, 0.24);
+        border-radius: 18px;
+        padding: 10px 10px 4px 10px;
+        margin-top: 10px;
+        box-shadow: 0 8px 22px rgba(54, 122, 183, 0.08);
+    }
+
+    .stAlert {
+        border-radius: 14px;
+    }
+
+    .stDataFrame, .stTable {
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    hr {
+        border-color: rgba(102, 170, 232, 0.20);
+    }
+
+    .element-container iframe {
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(102, 170, 232, 0.24);
+        box-shadow: 0 10px 24px rgba(54, 122, 183, 0.10);
+        background: #eef7ff;
+    }
+     /* ⭐ 修复输入框/选择框文字看不见 */
+    section[data-testid="stSidebar"] input,
+    section[data-testid="stSidebar"] select,
+    section[data-testid="stSidebar"] textarea {
+        color: #0b223a !important;   /* 深色字 */
+        background-color: #ffffff !important;
+    }
+
+    /* ⭐ slider 数值颜色 */
+    section[data-testid="stSidebar"] .stSlider div {
+        color: #ffffff !important;
+    }   
+
+     /* ⭐ 修复 selectbox（当前策略）文字颜色 */
+    section[data-testid="stSidebar"] div[role="combobox"] {
+        color: #0b223a !important;
+        background-color: #ffffff !important;
+    }
+
+    /* ⭐ 下拉展开后的选项 */
+    section[data-testid="stSidebar"] div[role="listbox"] {
+        color: #0b223a !important;
+    }
+
+    /* ⭐ 选中项文本 */
+    section[data-testid="stSidebar"] div[role="combobox"] span {
+        color: #0b223a !important;
+    }
+
+    /* ⭐ 强制修复 selectbox 当前显示文字 */
+    section[data-testid="stSidebar"] div[role="combobox"] * {
+        color: #0b223a !important;
+    }
+
+    /* ⭐ 重点：锁定真正显示文字的 span */
+    section[data-testid="stSidebar"] div[role="combobox"] span {
+        color: #0b223a !important;
+    }
+
+    /* ⭐ 输入状态（光标输入时） */
+    section[data-testid="stSidebar"] input {
+        color: #0b223a !important;
+    }
+
+    /* ⭐ 下拉菜单 */
+    section[data-testid="stSidebar"] div[role="listbox"] * {
+        color: #0b223a !important;
+    }
+
+    /* ⭐ 背景统一 */
+    section[data-testid="stSidebar"] div[role="combobox"] {
+        background-color: #ffffff !important;
+    }
+
+    /* ⭐ 侧边栏标题统一变白 */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4 {
+        color: #ffffff !important;
+    }
+
+    /* ⭐ 演示按钮可见性修复 */
+    section[data-testid="stSidebar"] button {
+        background-color: #1f4e79 !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+    }
+
+    /* ⭐ hover效果 */
+    section[data-testid="stSidebar"] button:hover {
+        background-color: #2f6fa5 !important;
+        color: #ffffff !important;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
 
 
 # =========================================================
@@ -18,10 +277,10 @@ def make_synthetic_inputs(seed=42):
     inflow = np.clip(inflow, 60, 200)
 
     price = (
-        200
-        + 120 * np.exp(-0.5 * ((hours - 19) / 3) ** 2)
-        + 40 * np.exp(-0.5 * ((hours - 10) / 4) ** 2)
-        + rng.normal(0, 5, size=24)
+            200
+            + 120 * np.exp(-0.5 * ((hours - 19) / 3) ** 2)
+            + 40 * np.exp(-0.5 * ((hours - 10) / 4) ** 2)
+            + rng.normal(0, 5, size=24)
     )
     price = np.clip(price, 100, 450)
 
@@ -116,27 +375,19 @@ def rule_based_schedule(inflow, price, params):
     price_std = np.std(price) + 1e-6
 
     for t in range(hours):
-        # 1) 基础出流
         q_base = 0.98 * inflow[t]
-
-        # 2) 电价修正
         price_z = (price[t] - price_mean) / price_std
         q_price = 40.0 * price_z
-
-        # 3) 库容修正
         storage_ratio = (S[t] - S_min) / (S_max - S_min + 1e-6)
         q_storage = 55.0 * (storage_ratio - 0.5)
 
         q = q_base + q_price + q_storage
         q = np.clip(q, Q_min, Q_max)
 
-        # 4) 平滑
         if t > 0:
             q = 0.7 * Q[t - 1] + 0.3 * q
 
         Q[t] = q
-
-        # 更新库容
         S[t + 1] = S[t] + k_storage * (inflow[t] - Q[t])
         S[t + 1] = np.clip(S[t + 1], S_min, S_max)
 
@@ -187,16 +438,16 @@ def pso_optimize(inflow, price, params, n_particles=30, n_iters=50, w=0.7, c1=1.
 
 
 def apso_ls_optimize(
-    inflow, price, params,
-    n_particles=30, n_iters=50,
-    w_max=0.95, w_min=0.45, decay_k=3.0,
-    c1=1.6, c2=1.6,
-    stagnation_window=8,
-    w_boost=0.12,
-    v_clip=30.0,
-    seed=3,
-    ls_trials=80,
-    ls_sigma=6.0,
+        inflow, price, params,
+        n_particles=30, n_iters=50,
+        w_max=0.95, w_min=0.45, decay_k=3.0,
+        c1=1.6, c2=1.6,
+        stagnation_window=8,
+        w_boost=0.12,
+        v_clip=30.0,
+        seed=3,
+        ls_trials=80,
+        ls_sigma=6.0,
 ):
     rng = np.random.default_rng(seed)
     dim = 24
@@ -262,10 +513,10 @@ def apso_ls_optimize(
 
 
 def ga_optimize(
-    inflow, price, params,
-    pop_size=40, n_gens=50,
-    cx_prob=0.9, mut_prob=0.25, mut_sigma=10.0,
-    elite_k=2, seed=7
+        inflow, price, params,
+        pop_size=40, n_gens=50,
+        cx_prob=0.9, mut_prob=0.25, mut_sigma=10.0,
+        elite_k=2, seed=7
 ):
     rng = np.random.default_rng(seed)
     dim = 24
@@ -453,7 +704,7 @@ def build_reservoir_scene_2d(storage, params, release, inflow, power, hour):
     )
     fig.add_annotation(x=95, y=34, text="泄流", showarrow=False, font=dict(size=11, color="#1f6ed4"))
 
-    fig.add_annotation(x=50, y=28, text="某某河水库", showarrow=False, font=dict(size=22, color="#ffffff"))
+    fig.add_annotation(x=50, y=28, text="某某河水库", showarrow=False, font=dict(size=22, color="#0f3b63"))
     fig.add_annotation(
         x=12, y=66,
         text=f"第 {hour:02d} 时<br>水位比例: {level_ratio:.2f}",
@@ -498,6 +749,7 @@ def build_reservoir_scene_2d(storage, params, release, inflow, power, hour):
     )
     return fig
 
+
 def apply_clean_layout(fig, title, x_title, y_title, height=280):
     fig.update_layout(
         title=title,
@@ -525,48 +777,29 @@ def apply_clean_layout(fig, title, x_title, y_title, height=280):
 
 
 def build_reservoir_scene(storage, params, release, inflow, power, hour):
-    """
-    Plotly 3D 场景版：
-    - Surface: 山谷地形 + 水面
-    - Mesh3d: 坝体 + 厂房
-    """
     s_min = params["S_min"]
     s_max = params["S_max"]
 
     level_ratio = (storage - s_min) / (s_max - s_min)
     level_ratio = float(np.clip(level_ratio, 0.08, 0.98))
 
-    # ----------------------------
-    # 1) 构造山谷地形
-    # ----------------------------
     x = np.linspace(-10, 10, 70)
     y = np.linspace(-6, 16, 90)
     X, Y = np.meshgrid(x, y)
 
-    # 做一个“河谷 + 两侧山体”
     valley = 0.18 * (X ** 2) + 0.015 * (Y - 4) ** 2
-    slope = 0.18 * (16 - Y)  # 上游更高、下游更低
+    slope = 0.18 * (16 - Y)
     Z_terrain = 26 + valley + slope
 
-    # 河道再压低一点
     channel = np.exp(-(X / 2.4) ** 2) * (5.5 + 0.12 * (16 - Y))
     Z_terrain = Z_terrain - channel
 
-    # ----------------------------
-    # 2) 水面高度（跟库容联动）
-    # ----------------------------
     water_level = 29 + 7.5 * level_ratio
-
-    # 水面覆盖区域：坝前上游区域
     water_mask = (np.abs(X) < 3.2 + 0.05 * (16 - Y)) & (Y <= 12.2)
     Z_water = np.where(water_mask, water_level, np.nan)
 
-    # ----------------------------
-    # 3) 创建图
-    # ----------------------------
     fig = go.Figure()
 
-    # 地形 surface
     fig.add_trace(go.Surface(
         x=X,
         y=Y,
@@ -584,7 +817,6 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         name="地形"
     ))
 
-    # 水面 surface
     fig.add_trace(go.Surface(
         x=X,
         y=Y,
@@ -600,20 +832,15 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         name="库水"
     ))
 
-    # ----------------------------
-    # 4) 坝体 Mesh3d
-    # ----------------------------
-    # 一个简化的梯形坝体
     dam_vertices = np.array([
-        [-2.2, 12.2, 24.5],   # 0 前左下
-        [ 2.2, 12.2, 24.5],   # 1 前右下
-        [-1.6, 12.2, 36.5],   # 2 前左上
-        [ 1.6, 12.2, 36.5],   # 3 前右上
-
-        [-2.8, 13.4, 23.8],   # 4 后左下
-        [ 2.8, 13.4, 23.8],   # 5 后右下
-        [-2.0, 13.4, 37.2],   # 6 后左上
-        [ 2.0, 13.4, 37.2],   # 7 后右上
+        [-2.2, 12.2, 24.5],
+        [2.2, 12.2, 24.5],
+        [-1.6, 12.2, 36.5],
+        [1.6, 12.2, 36.5],
+        [-2.8, 13.4, 23.8],
+        [2.8, 13.4, 23.8],
+        [-2.0, 13.4, 37.2],
+        [2.0, 13.4, 37.2],
     ], dtype=float)
 
     i = [0, 0, 1, 2, 4, 4, 5, 6, 0, 0, 2, 2]
@@ -632,9 +859,6 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         name="坝体"
     ))
 
-    # ----------------------------
-    # 5) 厂房 Mesh3d
-    # ----------------------------
     house = np.array([
         [-3.2, 11.2, 23.5],
         [-1.6, 11.2, 23.5],
@@ -662,9 +886,6 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         name="厂房"
     ))
 
-    # ----------------------------
-    # 6) 坝前水位线（3D line）
-    # ----------------------------
     fig.add_trace(go.Scatter3d(
         x=np.linspace(-2.6, 2.6, 40),
         y=np.full(40, 11.6),
@@ -675,9 +896,6 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         showlegend=False
     ))
 
-    # ----------------------------
-    # 7) 入流 / 泄流箭头（用 3D 线近似）
-    # ----------------------------
     fig.add_trace(go.Scatter3d(
         x=[0, 0, 0.0],
         y=[2.0, 0.0, -1.0],
@@ -698,9 +916,6 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         showlegend=False
     ))
 
-    # ----------------------------
-    # 8) 关键标注
-    # ----------------------------
     fig.add_trace(go.Scatter3d(
         x=[0],
         y=[7.5],
@@ -745,9 +960,6 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         showlegend=False
     ))
 
-    # ----------------------------
-    # 9) 布局与视角
-    # ----------------------------
     fig.update_layout(
         height=520,
         margin=dict(l=0, r=0, t=0, b=0),
@@ -766,15 +978,890 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
         ),
         showlegend=False
     )
-
     return fig
+
+
+def build_threejs_html(detail, Q, inflow, hour, auto_play):
+    import json
+    import base64
+
+    t = int(hour)
+
+    data_js = {
+        "currentHour": t,
+        "series": {
+            "S": [float(x) for x in detail["S"][:-1]],
+            "Q": [float(x) for x in Q],
+            "inflow": [float(x) for x in inflow]
+        }
+    }
+
+    data_str = json.dumps(data_js, ensure_ascii=False)
+
+    def file_to_base64(path):
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+
+    glb_base64 = file_to_base64("gravity_dam.glb")
+    terrain_diff_base64 = file_to_base64("textures/coast_sand_rocks_02_diff_4k.jpg")
+    terrain_arm_base64 = file_to_base64("textures/coast_sand_rocks_02_arm_4k.jpg")
+    water_normal_base64 = file_to_base64("water_normal.jpg")
+
+    html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #dfeaf4;
+        }
+        #app {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        #debugPanel {
+            position: absolute;
+            left: 18px;
+            top: 18px;
+            padding: 8px 10px;
+            background: rgba(0,0,0,0.40);
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.5;
+            border-radius: 6px;
+            z-index: 20;
+            pointer-events: none;
+            min-width: 120px;
+            font-family: Arial, sans-serif;
+        }
+        #errorPanel {
+            position: absolute;
+            left: 18px;
+            bottom: 18px;
+            max-width: 55%;
+            padding: 8px 10px;
+            background: rgba(180, 30, 30, 0.82);
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.4;
+            border-radius: 6px;
+            z-index: 30;
+            display: none;
+            white-space: pre-wrap;
+            font-family: Consolas, monospace;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+<div id="app">
+    <div id="debugPanel"></div>
+    <div id="errorPanel"></div>
+</div>
+
+<script>
+(function () {
+
+    function showError(msg) {
+        try {
+            const ep = document.getElementById("errorPanel");
+            ep.style.display = "block";
+            ep.textContent = String(msg);
+        } catch (e) {
+            console.error(msg);
+        }
+    }
+
+    try {
+
+        const DATA = """ + data_str + """;
+        const GLB_BASE64 = '""" + glb_base64 + """';
+        const TERRAIN_DIFFUSE = 'data:image/jpeg;base64,""" + terrain_diff_base64 + """';
+        const TERRAIN_ARM = 'data:image/jpeg;base64,""" + terrain_arm_base64 + """';
+        const WATER_NORMAL = 'data:image/jpeg;base64,""" + water_normal_base64 + """';
+
+        const container = document.getElementById("app");
+        const infoPanel = document.getElementById("debugPanel");
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xdfeaf4);
+        scene.fog = new THREE.Fog(0xdfeaf4, 180, 420);
+
+        const camera = new THREE.PerspectiveCamera(
+            46,
+            Math.max(1, container.clientWidth) / Math.max(1, container.clientHeight),
+            0.1,
+            2000
+        );
+
+        // 正对大坝的初始视角
+        camera.position.set(150, 120, -20);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight));
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.target.set(0, 13, 0);
+        controls.minDistance = 35;
+        controls.maxDistance = 260;
+        controls.maxPolarAngle = Math.PI * 0.49;
+        controls.update();
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.86);
+        scene.add(ambient);
+
+        const sun = new THREE.DirectionalLight(0xffffff, 0.96);
+        sun.position.set(120, 160, 80);
+        scene.add(sun);
+
+        const fill = new THREE.DirectionalLight(0xd8ebff, 0.30);
+        fill.position.set(-100, 60, -90);
+        scene.add(fill);
+
+        const root = new THREE.Group();
+        scene.add(root);
+
+        const staticGroup = new THREE.Group();
+        const dynamicGroup = new THREE.Group();
+        root.add(staticGroup);
+        root.add(dynamicGroup);
+
+        const textureLoader = new THREE.TextureLoader();
+
+        function prepareTexture(tex, repeatX, repeatY, isColor) {
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(repeatX, repeatY);
+            tex.flipY = false;
+            if (isColor) {
+                tex.encoding = THREE.sRGBEncoding;
+            }
+            tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+            return tex;
+        }
+
+        const terrainDiffuseTex = prepareTexture(
+            textureLoader.load(TERRAIN_DIFFUSE),
+            10,
+            7,
+            true
+        );
+
+        const terrainArmTex = prepareTexture(
+            textureLoader.load(TERRAIN_ARM),
+            10,
+            7,
+            false
+        );
+
+        const waterNormalTex = prepareTexture(
+            textureLoader.load(WATER_NORMAL),
+            8,
+            8,
+            false
+        );
+
+        function clamp(v, a, b) {
+            return Math.max(a, Math.min(b, v));
+        }
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        function smoothstep(a, b, x) {
+            const t = clamp((x - a) / (b - a), 0.0, 1.0);
+            return t * t * (3.0 - 2.0 * t);
+        }
+
+        function gauss(v, s) {
+            return Math.exp(-(v * v) / (2.0 * s * s));
+        }
+
+        function waterLevelFromStorage(s) {
+            const sMin = 20.0;
+            const sMax = 55.0;
+            const r = clamp((s - sMin) / (sMax - sMin), 0.0, 1.0);
+            return 13.0 + r * 9.0;
+        }
+
+        function dischargeFactor(q) {
+            return clamp((q - 30.0) / (220.0 - 30.0), 0.0, 1.0);
+        }
+
+        function getStateByHour(hour) {
+            const n = DATA.series.Q.length;
+            const h = clamp(Math.round(hour), 0, n - 1);
+
+            const q = DATA.series.Q[h];
+            const s = DATA.series.S[h];
+            const inflow = DATA.series.inflow[h];
+
+            const qFactor = dischargeFactor(q);
+            const waterLevel = waterLevelFromStorage(s);
+
+            return {
+                hour: h,
+                Q: q,
+                S: s,
+                inflow: inflow,
+                qFactor: qFactor,
+                waterLevel: waterLevel,
+                flowOffsetX: 0.003 + qFactor * 0.004,
+                flowOffsetY: 0.0015 + qFactor * 0.002,
+                rippleRepeat: 16 + qFactor * 18
+            };
+        }
+
+        let state = getStateByHour(DATA.currentHour);
+
+        function updateInfoPanel() {
+            infoPanel.innerHTML =
+                "时刻: " + state.hour + "<br>" +
+                "Q: " + state.Q.toFixed(1) + "<br>" +
+                "S: " + state.S.toFixed(1) + "<br>" +
+                "水位: " + state.waterLevel.toFixed(2);
+        }
+
+        waterNormalTex.repeat.set(state.rippleRepeat, state.rippleRepeat);
+
+        function riverCenterZ(x) {
+            if (x <= 0.0) return 0.0;
+            return 0.05 * x;
+        }
+
+        function reservoirHalfWidth(x) {
+            const t = smoothstep(-120.0, -6.0, x);
+            return 42.0 - t * 22.0;
+        }
+
+        function riverHalfWidthBase(x) {
+            const t = smoothstep(4.0, 120.0, x);
+
+            const Q = state.Q;
+
+            // ⭐ 在坝附近放大宽度
+            const damBoost = Math.exp(-Math.pow((x - 5.0)/6.0, 2.0)) * 25;
+
+            const widthQ = 0.3 * Math.sqrt(Q);
+
+            return 8.0 + t * 12.0 + widthQ + damBoost;
+        }
+
+        function terrainHeight(x, z) {
+            let y = 24.0;
+
+            y += Math.sin(x * 0.022) * 2.2;
+            y += Math.cos(z * 0.028) * 1.8;
+            y += Math.sin((x + z) * 0.018) * 1.2;
+
+            const basinCore = gauss(x + 62.0, 42.0) * gauss(z, 28.0);
+            y -= basinCore * 12.0;
+
+            const basinFlatten = gauss(x + 82.0, 55.0) * gauss(z, 42.0);
+            y -= basinFlatten * 5.0;
+
+            const throat = gauss(x + 3.0, 10.0) * gauss(z, 12.0);
+            y -= throat * 16.0;
+
+            if (x > 0.0) {
+                const cz = riverCenterZ(x);
+                const riverCut = Math.exp(-Math.pow((z - cz) / (10.0 + x * 0.05), 2.0));
+                y -= riverCut * (10.0 + x * 0.06);
+                y -= x * 0.12;
+            }
+
+            const leftWall = gauss(z + 38.0, 20.0) * 6.5;
+            const rightWall = gauss(z - 38.0, 20.0) * 6.5;
+            y += leftWall + rightWall;
+
+            if (x < 0.0) {
+                const shoreRaise = Math.pow(Math.abs(z) / 55.0, 1.5) * 4.0;
+                y += shoreRaise;
+            }
+
+            return y;
+        }
+
+        function inReservoirMask(x, z) {
+            const maskX = x >= -128.0 && x <= -4.0;
+            const halfW = reservoirHalfWidth(x);
+            const maskZ = Math.abs(z) <= halfW - 2.0;
+            return maskX && maskZ;
+        }
+
+        const RIVER_PROFILE = [];
+
+        function buildRiverProfile() {
+            RIVER_PROFILE.length = 0;
+
+            const startX = 2.0;
+            const endX = 138.0;
+            const step = 1.0;
+
+            const startCenterZ = riverCenterZ(startX);
+            const startBed = terrainHeight(startX, startCenterZ);
+
+            let prevSurfaceY = Math.max(startBed + 1.2, state.waterLevel - 0.65);
+
+            for (let x = startX; x <= endX + 1e-6; x += step) {
+                const cz = riverCenterZ(x);
+                const bedCenterY = terrainHeight(x, cz);
+
+                const designSlope = 0.068 + state.qFactor * 0.020;
+                const desiredSurfaceY = prevSurfaceY - designSlope * step;
+
+                const Q = state.Q;
+
+                const minDepth = 0.6 + 0.02 * Math.pow(Q, 0.4);
+                const maxDepth = 2.5 + 0.08 * Math.pow(Q, 0.6);
+
+                let surfaceY = clamp(desiredSurfaceY, bedCenterY + minDepth, bedCenterY + maxDepth);
+                const drop = Math.exp(-Math.pow((x - 3.0)/4.0, 2.0)) * 1.2;
+                surfaceY -= drop;
+
+                surfaceY = Math.min(surfaceY, prevSurfaceY - 0.012);
+
+                if (surfaceY < bedCenterY + minDepth) {
+                    surfaceY = bedCenterY + minDepth;
+                }
+
+                const targetHalfW = riverHalfWidthBase(x);
+                let wetHalfW = 1.8;
+
+                for (let w = 1.8; w <= targetHalfW; w += 0.35) {
+                    const zL = cz - w;
+                    const zR = cz + w;
+                    const bedL = terrainHeight(x, zL);
+                    const bedR = terrainHeight(x, zR);
+
+                    if (bedL <= surfaceY - 0.05 && bedR <= surfaceY - 0.05) {
+                        wetHalfW = w;
+                    } else {
+                        break;
+                    }
+                }
+
+                wetHalfW = Math.max(1.8, wetHalfW);
+
+                RIVER_PROFILE.push({
+                    x: x,
+                    cz: cz,
+                    y: surfaceY,
+                    halfW: wetHalfW
+                });
+
+                prevSurfaceY = surfaceY;
+            }
+        }
+
+        function sampleRiverProfile(x) {
+            const n = RIVER_PROFILE.length;
+            if (n === 0) {
+                return {
+                    cz: riverCenterZ(x),
+                    y: terrainHeight(x, riverCenterZ(x)) + 0.5,
+                    halfW: 2.5
+                };
+            }
+
+            if (x <= RIVER_PROFILE[0].x) return RIVER_PROFILE[0];
+            if (x >= RIVER_PROFILE[n - 1].x) return RIVER_PROFILE[n - 1];
+
+            const baseX = RIVER_PROFILE[0].x;
+            const i0 = clamp(Math.floor(x - baseX), 0, n - 1);
+            const i1 = clamp(i0 + 1, 0, n - 1);
+
+            const p0 = RIVER_PROFILE[i0];
+            const p1 = RIVER_PROFILE[i1];
+
+            const span = Math.max(1e-6, p1.x - p0.x);
+            const t = clamp((x - p0.x) / span, 0.0, 1.0);
+
+            return {
+                cz: lerp(p0.cz, p1.cz, t),
+                y: lerp(p0.y, p1.y, t),
+                halfW: lerp(p0.halfW, p1.halfW, t)
+            };
+        }
+
+        function riverSurfaceYAt(x) {
+            return sampleRiverProfile(x).y;
+        }
+
+        function inRiverMask(x, z) {
+            const p = sampleRiverProfile(x);
+            return x >= 2.0 && x <= 138.0 && Math.abs(z - p.cz) <= p.halfW;
+        }
+
+        function createWaterMaterial(opts) {
+            const o = opts || {};
+            return new THREE.MeshStandardMaterial({
+                color: o.color !== undefined ? o.color : 0x2d8fd6,
+                transparent: true,
+                opacity: o.opacity !== undefined ? o.opacity : 0.92,
+                depthWrite: false,
+                roughness: o.roughness !== undefined ? o.roughness : 0.08,
+                metalness: o.metalness !== undefined ? o.metalness : 0.25,
+                normalMap: waterNormalTex,
+                normalScale: o.normalScale !== undefined ? o.normalScale : new THREE.Vector2(1.4, 1.4),
+                emissive: new THREE.Color(0x0a2a3a),
+                emissiveIntensity: o.emissiveIntensity !== undefined ? o.emissiveIntensity : 0.12,
+                side: THREE.DoubleSide
+            });
+        }
+
+        function addTerrain() {
+            const sizeX = 260;
+            const sizeZ = 180;
+            const segX = 240;
+            const segZ = 180;
+
+            const geo = new THREE.PlaneGeometry(sizeX, sizeZ, segX, segZ);
+            geo.rotateX(-Math.PI / 2);
+
+            const pos = geo.attributes.position;
+            const colors = [];
+
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i);
+                const z = pos.getZ(i);
+                const y = terrainHeight(x, z);
+                pos.setY(i, y);
+
+                let r = 0.72, g = 0.86, b = 0.62;
+                if (y < 14) {
+                    r = 0.83; g = 0.87; b = 0.70;
+                } else if (y < 24) {
+                    r = 0.70; g = 0.82; b = 0.58;
+                } else if (y < 32) {
+                    r = 0.58; g = 0.72; b = 0.49;
+                } else {
+                    r = 0.48; g = 0.61; b = 0.42;
+                }
+
+                colors.push(r, g, b);
+            }
+
+            geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+            geo.setAttribute(
+                "uv2",
+                new THREE.Float32BufferAttribute(geo.attributes.uv.array.slice(), 2)
+            );
+            geo.computeVertexNormals();
+
+            const mat = new THREE.MeshStandardMaterial({
+                map: terrainDiffuseTex,
+                roughnessMap: terrainArmTex,
+                aoMap: terrainArmTex,
+                metalnessMap: terrainArmTex,
+                vertexColors: true,
+                roughness: 0.95,
+                metalness: 0.02
+            });
+
+            const mesh = new THREE.Mesh(geo, mat);
+            staticGroup.add(mesh);
+        }
+
+        function addReservoirWater() {
+            const points = [];
+            const step = 4.0;
+
+            for (let x = -128.0; x <= -4.0; x += step) {
+                points.push(new THREE.Vector2(x, -reservoirHalfWidth(x) + 2.0));
+            }
+            for (let x = -4.0; x >= -128.0; x -= step) {
+                points.push(new THREE.Vector2(x, reservoirHalfWidth(x) - 2.0));
+            }
+
+            const shape = new THREE.Shape(points);
+            const geo = new THREE.ShapeGeometry(shape, 120);
+
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i);
+                const z = pos.getY(i);
+                pos.setXYZ(i, x, state.waterLevel, z);
+            }
+
+            geo.computeVertexNormals();
+
+            const mat = createWaterMaterial({
+                color: 0x1a4f8f,          // ⭐和河道一致
+                opacity: 0.90,            // ⭐更深一点
+                roughness: 0.2,
+                metalness: 0.05,
+                normalScale: new THREE.Vector2(1.2, 1.2),
+                emissiveIntensity: 0.15
+            });
+
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.renderOrder = 1;   // ⭐关键：水后画
+            dynamicGroup.add(mesh);
+        }
+
+        function addDamTransitionWater() {
+            const geo = new THREE.PlaneGeometry(22, 28, 60, 30);
+            geo.rotateX(-Math.PI / 2);
+
+            const pos = geo.attributes.position;
+
+            for (let i = 0; i < pos.count; i++) {
+                const lx = pos.getX(i);
+                const lz = pos.getZ(i);
+
+                const x = lx - 6;
+                const z = lz;
+
+                const ground = terrainHeight(x, z);
+                const t = clamp((x + 6) / 10.0, 0.0, 1.0);
+
+                const upstreamY = state.waterLevel;
+                const downstreamY = riverSurfaceYAt(2.0);
+
+                let y = upstreamY * (1.0 - t) + downstreamY * t;
+                y = Math.max(y, ground + 0.15);
+
+                pos.setXYZ(i, x, y, z);
+            }
+
+            geo.computeVertexNormals();
+
+            const mat = createWaterMaterial({
+                color: 0x70c9ee,
+                opacity: 0.76,
+                roughness: 0.14,
+                metalness: 0.05,
+                normalScale: new THREE.Vector2(1.8, 1.8),
+                emissiveIntensity: 0.07
+            });
+
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.renderOrder = 1;   // ⭐关键：水后画
+                dynamicGroup.add(mesh);
+        }
+
+
+
+        function addRiverWater() {
+            const length = 136.0;
+            const width = 34.0;
+            const segX = 240;
+            const segZ = 36;
+
+            const geo = new THREE.PlaneGeometry(length, width, segX, segZ);
+            geo.rotateX(-Math.PI / 2);
+
+            const pos = geo.attributes.position;
+
+            for (let i = 0; i < pos.count; i++) {
+                const localX = pos.getX(i);
+                const localZ = pos.getZ(i);
+
+                const x = 2.0 + (localX + length * 0.5);
+                const profile = sampleRiverProfile(x);
+
+                const u = clamp(localZ / (width * 0.5), -1.0, 1.0);
+                const finalZ = profile.cz + u * profile.halfW;
+
+                const bankFade = Math.abs(u);
+                let finalY = profile.y - Math.pow(bankFade, 1.5) * 0.15;
+
+                const bed = terrainHeight(x, finalZ);
+                const offset = 0.15 + state.qFactor * 0.1;
+                finalY = Math.max(finalY, bed + offset);
+
+                pos.setX(i, x);
+                pos.setY(i, finalY);
+                pos.setZ(i, finalZ);
+            }
+
+            geo.computeVertexNormals();
+
+            const mat = createWaterMaterial({
+                color: 0x1a4f8f,
+                opacity: 0.90,
+                emissive: new THREE.Color(0x0a1f3a),
+                emissiveIntensity: 0.18,
+                roughness: 0.2,
+                metalness: 0.05,
+                normalScale: new THREE.Vector2(1.8, 1.8),
+                emissiveIntensity: 0.09
+            });
+
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.renderOrder = 1;   // ⭐关键：水后画
+                dynamicGroup.add(mesh);
+        }
+
+        function addShorelineTransitions() {
+            const shoreMat = new THREE.MeshStandardMaterial({
+                color: 0xcdbf98,
+                roughness: 1.0,
+                metalness: 0.0,
+                transparent: true,
+                opacity: 0.92,
+                side: THREE.DoubleSide
+            });
+
+            const geo1 = new THREE.PlaneGeometry(150, 100, 180, 120);
+            geo1.rotateX(-Math.PI / 2);
+            const pos1 = geo1.attributes.position;
+
+            for (let i = 0; i < pos1.count; i++) {
+                const x = pos1.getX(i) - 48.0;
+                const z = pos1.getZ(i);
+                const bed = terrainHeight(x, z);
+                const mask = inReservoirMask(x, z);
+
+                if (mask && bed < state.waterLevel + 1.0 && bed > state.waterLevel - 1.8) {
+                    pos1.setX(i, x);
+                    pos1.setY(i, bed + 0.08);
+                    pos1.setZ(i, z);
+                } else {
+                    pos1.setX(i, x);
+                    pos1.setY(i, bed - 2.0);
+                    pos1.setZ(i, z);
+                }
+            }
+
+            geo1.computeVertexNormals();
+            dynamicGroup.add(new THREE.Mesh(geo1, shoreMat));
+
+            const geo2 = new THREE.PlaneGeometry(180, 42, 220, 40);
+            geo2.rotateX(-Math.PI / 2);
+            const pos2 = geo2.attributes.position;
+
+            for (let i = 0; i < pos2.count; i++) {
+                const x = pos2.getX(i) + 52.0;
+                const localZ = pos2.getZ(i);
+
+                const p = sampleRiverProfile(clamp(x, 2.0, 138.0));
+                const z = p.cz + localZ;
+
+                const bed = terrainHeight(x, z);
+                const targetY = riverSurfaceYAt(clamp(x, 2.0, 138.0));
+
+                if (inRiverMask(x, z) && bed < targetY + 0.9 && bed > targetY - 1.2) {
+                    pos2.setX(i, x);
+                    pos2.setY(i, bed + 0.07);
+                    pos2.setZ(i, z);
+                } else {
+                    pos2.setX(i, x);
+                    pos2.setY(i, bed - 2.0);
+                    pos2.setZ(i, z);
+                }
+            }
+
+            geo2.computeVertexNormals();
+            dynamicGroup.add(new THREE.Mesh(geo2, shoreMat));
+        }
+
+        function addTreesNatural() {
+            const group = new THREE.Group();
+            staticGroup.add(group);
+
+            const treeWaterLevel = state.waterLevel;
+
+            function createTree(x, z) {
+                const y = terrainHeight(x, z);
+                if (y < treeWaterLevel + 1.5) return;
+
+                const scale = 0.8 + Math.random() * 1.2;
+
+                const trunk = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.15 * scale, 0.2 * scale, 1.2 * scale, 6),
+                    new THREE.MeshStandardMaterial({ color: 0x6b4f2a })
+                );
+                trunk.position.set(x, y + 0.6 * scale, z);
+
+                const crown = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.9 * scale, 2.6 * scale, 8),
+                    new THREE.MeshStandardMaterial({
+                        color: new THREE.Color().setHSL(0.33 + Math.random() * 0.05, 0.6, 0.35)
+                    })
+                );
+                crown.position.set(x, y + 2.0 * scale, z);
+
+                group.add(trunk);
+                group.add(crown);
+            }
+
+            for (let i = 0; i < 300; i++) {
+                const x = -120 + Math.random() * 240;
+                const z = -80 + Math.random() * 160;
+                if (Math.abs(x) < 15 && Math.abs(z) < 25) continue;
+                createTree(x, z);
+            }
+        }
+
+        function addApron() {
+            const apron = new THREE.Mesh(
+                new THREE.BoxGeometry(18, 0.5, 16),
+                new THREE.MeshStandardMaterial({
+                    color: 0xd7dde3,
+                    roughness: 0.88,
+                    metalness: 0.02
+                })
+            );
+            apron.position.set(6, terrainHeight(6, 0) + 0.25, 0);
+            staticGroup.add(apron);
+        }
+
+        function loadDam() {
+            try {
+                const loader = new THREE.GLTFLoader();
+
+                const binary = atob(GLB_BASE64);
+                const array = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    array[i] = binary.charCodeAt(i);
+                }
+
+                loader.parse(array.buffer, "", function (gltf) {
+                    try {
+                        const dam = gltf.scene;
+
+                        const box0 = new THREE.Box3().setFromObject(dam);
+                        const size0 = new THREE.Vector3();
+                        box0.getSize(size0);
+
+                        const targetHeight = 18.0;
+                        const scale = targetHeight / Math.max(size0.y, 0.0001);
+                        dam.scale.set(scale, scale, scale);
+
+                        const box1 = new THREE.Box3().setFromObject(dam);
+                        const center1 = new THREE.Vector3();
+                        box1.getCenter(center1);
+
+                        const baseY = terrainHeight(0.0, 0.0) - 0.8;
+
+                        dam.position.set(
+                            0.0 - center1.x,
+                            baseY - box1.min.y,
+                            0.0 - center1.z
+                        );
+
+                        dam.rotation.y = Math.PI / 2.0;
+                        dam.renderOrder = 0;
+                        staticGroup.add(dam);
+                    } catch (e) {
+                        showError("坝体解析后处理失败: " + e);
+                    }
+                }, function (err) {
+                    showError("GLB 解析失败: " + err);
+                });
+            } catch (e) {
+                showError("GLB 加载失败: " + e);
+            }
+        }
+
+        function disposeMaterial(mat) {
+            if (!mat) return;
+            if (Array.isArray(mat)) {
+                for (let i = 0; i < mat.length; i++) {
+                    if (mat[i] && mat[i].dispose) mat[i].dispose();
+                }
+            } else if (mat.dispose) {
+                mat.dispose();
+            }
+        }
+
+        function disposeNode(node) {
+            if (!node) return;
+            if (node.geometry) node.geometry.dispose();
+            if (node.material) disposeMaterial(node.material);
+        }
+
+        function clearDynamicGroup() {
+            for (let i = dynamicGroup.children.length - 1; i >= 0; i--) {
+                const child = dynamicGroup.children[i];
+                dynamicGroup.remove(child);
+                child.traverse(function (obj) {
+                    disposeNode(obj);
+                });
+            }
+        }
+
+        function rebuildDynamicScene() {
+            waterNormalTex.repeat.set(state.rippleRepeat, state.rippleRepeat);
+            buildRiverProfile();
+            addShorelineTransitions();
+            addReservoirWater();
+            addDamTransitionWater();
+            addRiverWater();
+        }
+
+        function setDispatchHour(hour) {
+            state = getStateByHour(hour);
+            clearDynamicGroup();
+            rebuildDynamicScene();
+            updateInfoPanel();
+        }
+
+        function onResize() {
+            const w = Math.max(1, container.clientWidth || window.innerWidth);
+            const h = Math.max(1, container.clientHeight || window.innerHeight);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        addTerrain();
+        addApron();
+        addTreesNatural();
+        loadDam();
+        rebuildDynamicScene();
+        updateInfoPanel();
+
+        window.setDispatchHour = setDispatchHour;
+        window.addEventListener("resize", onResize);
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            waterNormalTex.offset.x += state.flowOffsetX;
+            waterNormalTex.offset.y += state.flowOffsetY;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        onResize();
+        animate();
+
+    } catch (e) {
+        showError("主脚本错误: " + e.stack || e);
+    }
+
+})();
+</script>
+</body>
+</html>
+"""
+    return html
 
 
 def line_chart(hours, y, title, yname):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=hours, y=y, mode="lines+markers",
-        line=dict(width=3), marker=dict(size=6)
+        line=dict(width=3, color="#1f77d0"), marker=dict(size=6, color="#1f77d0")
     ))
     return apply_clean_layout(fig, title, "小时", yname, height=270)
 
@@ -822,6 +1909,22 @@ def build_alerts(detail, params, hour):
     if not msgs:
         msgs.append("当前运行状态正常，调度方案满足主要约束条件。")
     return msgs
+
+
+def build_result_table(results):
+    rows = []
+    for name, result in results.items():
+        d = result["detail"]
+        rows.append({
+            "策略": name,
+            "总收益(元)": round(d["revenue"], 2),
+            "综合目标": round(d["objective"], 2),
+            "平滑指标": round(d["smooth_penalty"], 2),
+            "弃水量": round(d["spill"], 4),
+            "末时段库容": round(d["S"][-1], 2),
+            "平均出力(MW)": round(float(np.mean(d["power_mw"])), 2),
+        })
+    return pd.DataFrame(rows)
 
 
 # =========================================================
@@ -899,9 +2002,22 @@ with st.sidebar:
         ["Rule", "PSO", "APSO-LS", "GA"]
     )
 
+    st.markdown("### 🎬 演示模式")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("▶ 一键演示"):
+            st.session_state.demo_mode = True
+            st.session_state.demo_hour = 0
+            st.session_state.demo_strategy_idx = 0
+
+    with col2:
+        if st.button("⏹ 停止"):
+            st.session_state.demo_mode = False
+
     auto_play = st.checkbox("自动播放 24h", value=False)
 
-    # 放在 auto_play 定义之后
     if scene_mode != "2D场景" and auto_play:
         st.warning("3D场景不建议自动播放，建议使用 2D 场景或关闭自动播放。")
 
@@ -910,10 +2026,11 @@ with st.sidebar:
     else:
         hour = 0
 
-
 # =========================================================
 # 6. 主界面
 # =========================================================
+inject_dashboard_css()
+
 inflow, price, params, results = run_all_methods(
     seed, beta_smooth, s0, smin, smax, qmin, qmax, head, eta
 )
@@ -922,23 +2039,36 @@ Q = selected["Q"]
 detail = selected["detail"]
 hours = np.arange(24)
 best_name, best_reason = get_recommendation(results)
+table_data = build_result_table(results)
 
-st.title("“智调水电”——水电站智能优化调度可视化仿真平台")
-st.caption("面向新能源消纳的演示系统")
-
-c_top1, c_top2, c_top3, c_top4 = st.columns(4)
 display_name = "APSO-LS" if best_name == "APSO-LS" else best_name
-c_top1.metric("推荐策略", display_name)
-c_top2.metric("当前策略收益", f"{detail['revenue']:.0f} 元")
-c_top3.metric("当前策略综合目标", f"{detail['objective']:.0f}")
-c_top4.metric("平滑权重 β", f"{beta_smooth:.1f}")
+
+st.markdown("""
+<div class="dashboard-title">
+    <h1>水电站智能调度可视化监控大屏</h1>
+    <p>Hydropower Intelligent Dispatch Visualization Center · 稳定版工程升级 </p>
+    <div class="status-chip-wrap">
+        <div class="status-chip">运行模式：日内优化调度</div>
+        <div class="status-chip">三维引擎：Three.js Embedded</div>
+        <div class="status-chip">求解核心：PSO / GA / APSO-LS</div>
+        <div class="status-chip">数据链路：Python → JS 驱动</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+top1, top2, top3, top4, top5 = st.columns(5)
+top1.metric("推荐策略", display_name)
+top2.metric("当前策略", algo)
+top3.metric("当前策略收益", f"{detail['revenue']:.0f} 元")
+top4.metric("综合目标", f"{detail['objective']:.0f}")
+top5.metric("当前时刻", f"{(hour if not auto_play else 0):02d}:00")
 
 st.success(f"系统推荐：{best_name}。{best_reason}")
 
 with st.expander("系统说明", expanded=False):
     st.write(
-        "本系统集成入流与电价数据输入、多目标优化求解、调度策略对比、运行状态展示与可视化仿真功能，"
-        "可用于水电站日内调度方案分析与决策辅助。"
+        "本系统集成入流与电价数据输入、多目标优化求解、调度策略对比、运行状态展示与三维可视化仿真功能。"
+        "当前版本在现有稳定系统基础上进行工程级升级，本步骤仅优化整体页面结构与大屏视觉布局，不改变算法与数据驱动主链路。"
     )
 
 alerts = build_alerts(detail, params, hour if not auto_play else 0)
@@ -946,122 +2076,193 @@ for msg in alerts:
     st.info(msg)
 
 
-def render_main(t):
-    c1, c2, c3 = st.columns([1.0, 2.5, 1.0])
+def render_dashboard_main(hour, strategy_override=None):
+    current_algo = strategy_override if strategy_override is not None else algo
+    current_result = results[current_algo]
+    current_Q = current_result["Q"]
+    current_detail = current_result["detail"]
 
-    with c1:
-        st.subheader("实时运行指标")
-        st.metric("当前时刻", f"{t:02d}:00")
-        st.metric("入流量", f"{inflow[t]:.2f} m³/s")
-        st.metric("下泄流量", f"{Q[t]:.2f} m³/s")
-        st.metric("机组出力", f"{detail['power_mw'][t]:.2f} MW")
-        st.metric("当前库容", f"{detail['S'][t]:.2f}")
-        st.metric("累计收益", f"{detail['cum_revenue'][t]:.0f} 元")
+    left_col, center_col, right_col = st.columns([1.15, 2.9, 1.15], gap="medium")
 
-    with c2:
+    with left_col:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">运行态势</div>', unsafe_allow_html=True)
+
+        m1, m2 = st.columns(2)
+        with m1:
+            st.metric("时刻", f"{hour:02d}:00")
+        with m2:
+            mode_text = "演示" if st.session_state.demo_mode else ("自动" if auto_play else "手动")
+            st.metric("模式", mode_text)
+
+        st.metric("入流量", f"{inflow[hour]:.2f} m³/s")
+        st.metric("下泄流量", f"{current_Q[hour]:.2f} m³/s")
+        st.metric("机组出力", f"{current_detail['power_mw'][hour]:.2f} MW")
+        st.metric("当前库容", f"{current_detail['S'][hour]:.2f}")
+        st.metric("累计收益", f"{current_detail['cum_revenue'][hour]:.0f} 元")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">调度策略信息</div>', unsafe_allow_html=True)
+        st.write(f"**当前策略：** {current_algo}")
+        st.write(f"**推荐策略：** {best_name}")
+        st.write(f"**平滑权重 β：** {beta_smooth:.1f}")
+        st.write(f"**场景模式：** {scene_mode}")
+        st.write(f"**页面模式：** {page_mode}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with center_col:
+        st.markdown("""
+        <div class="main-3d-wrap">
+            <div class="main-3d-title">
+                <div class="main-3d-title-left">三维调度场景主视图</div>
+                <div class="main-3d-title-right">3D视觉中心 / Reservoir-Dam-River Scene</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         if scene_mode == "2D场景":
-            st.subheader("二维水库仿真场景")
             fig_2d = build_reservoir_scene_2d(
-                storage=detail["S"][t],
+                storage=current_detail["S"][hour],
                 params=params,
-                release=Q[t],
-                inflow=inflow[t],
-                power=detail["power_mw"][t],
-                hour=t
+                release=current_Q[hour],
+                inflow=inflow[hour],
+                power=current_detail["power_mw"][hour],
+                hour=hour
             )
-            st.plotly_chart(
-                fig_2d,
-                width="stretch",
-                config={"displayModeBar": False}
+            fig_2d.update_layout(
+                height=620,
+                paper_bgcolor="rgba(255,255,255,0.0)",
+                plot_bgcolor="rgba(240,248,255,0.98)"
             )
+            st.plotly_chart(fig_2d, width="stretch", config={"displayModeBar": False})
 
         elif scene_mode == "3D场景":
-            st.subheader("三维水库仿真场景")
-            fig_3d = build_reservoir_scene(
-                storage=detail["S"][t],
-                params=params,
-                release=Q[t],
-                inflow=inflow[t],
-                power=detail["power_mw"][t],
-                hour=t
+            html = build_threejs_html(
+                detail=current_detail,
+                Q=current_Q,
+                inflow=inflow,
+                hour=hour,
+                auto_play=auto_play
             )
-            st.plotly_chart(
-                fig_3d,
-                width="stretch",
-                config={"displayModeBar": True}
-            )
+            components.html(html, height=620)
 
         else:
-            st.subheader("二维/三维对照场景")
-            sub1, sub2 = st.columns(2)
-
-            with sub1:
+            dual1, dual2 = st.columns([1, 1], gap="small")
+            with dual1:
                 fig_2d = build_reservoir_scene_2d(
-                    storage=detail["S"][t],
+                    storage=current_detail["S"][hour],
                     params=params,
-                    release=Q[t],
-                    inflow=inflow[t],
-                    power=detail["power_mw"][t],
-                    hour=t
+                    release=current_Q[hour],
+                    inflow=inflow[hour],
+                    power=current_detail["power_mw"][hour],
+                    hour=hour
                 )
-                st.plotly_chart(
-                    fig_2d,
-                    width="stretch",
-                    config={"displayModeBar": False}
+                fig_2d.update_layout(
+                    height=620,
+                    paper_bgcolor="rgba(255,255,255,0.0)",
+                    plot_bgcolor="rgba(240,248,255,0.98)"
                 )
+                st.plotly_chart(fig_2d, width="stretch", config={"displayModeBar": False})
 
-            with sub2:
-                fig_3d = build_reservoir_scene(
-                    storage=detail["S"][t],
-                    params=params,
-                    release=Q[t],
-                    inflow=inflow[t],
-                    power=detail["power_mw"][t],
-                    hour=t
+            with dual2:
+                html = build_threejs_html(
+                    detail=current_detail,
+                    Q=current_Q,
+                    inflow=inflow,
+                    hour=hour,
+                    auto_play=auto_play
                 )
-                st.plotly_chart(
-                    fig_3d,
-                    width="stretch",
-                    config={"displayModeBar": True}
-                )
+                components.html(html, height=620)
 
-    with c3:
-        st.subheader("方案总体指标")
-        st.metric("总收益", f"{detail['revenue']:.0f} 元")
-        st.metric("平滑指标", f"{detail['smooth_penalty']:.2f}")
-        st.metric("弃水量", f"{detail['spill']:.4f}")
-        st.metric("综合目标", f"{detail['objective']:.0f}")
+        st.markdown('<div class="chart-panel">', unsafe_allow_html=True)
+        trend1, trend2 = st.columns(2)
 
+        with trend1:
+            st.plotly_chart(
+                line_chart(hours, current_Q, f"{current_algo} 调度出流曲线", "出流(m³/s)"),
+                width="stretch"
+            )
+
+        with trend2:
+            st.plotly_chart(
+                line_chart(np.arange(25), current_detail["S"], f"{current_algo} 库容变化曲线", "库容"),
+                width="stretch"
+            )
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with right_col:
+
+        st.metric("总收益", f"{current_detail['revenue']:.0f} 元")
+        st.metric("平滑指标", f"{current_detail['smooth_penalty']:.2f}")
+        st.metric("弃水量", f"{current_detail['spill']:.4f}")
+        st.metric("综合目标", f"{current_detail['objective']:.0f}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">外部环境输入</div>', unsafe_allow_html=True)
+        st.metric("当前电价", f"{price[hour]:.2f}")
+        st.metric("24h平均入流", f"{np.mean(inflow):.2f} m³/s")
+        st.metric("24h平均电价", f"{np.mean(price):.2f}")
+        st.metric("最大出流约束", f"{params['Q_max']:.1f} m³/s")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+strategies = ["Rule", "PSO", "APSO-LS"]
+
+if st.session_state.demo_mode:
+    demo_strategy = strategies[st.session_state.demo_strategy_idx]
+    demo_hour = st.session_state.demo_hour
+
+    render_dashboard_main(demo_hour, strategy_override=demo_strategy)
+
+    st.session_state.demo_hour += 1
+    if st.session_state.demo_hour >= 24:
+        st.session_state.demo_hour = 0
+        st.session_state.demo_strategy_idx = (
+                                                     st.session_state.demo_strategy_idx + 1
+                                             ) % len(strategies)
+
+    time.sleep(0.6)
+    st.rerun()
 
 if page_mode == "单策略分析":
     if auto_play and scene_mode == "2D场景":
-        placeholder = st.empty()
-        for t in range(24):
-            with placeholder.container():
-                render_main(t)
-            time.sleep(0.35)
+        t = st.session_state.play_hour
+        render_dashboard_main(t)
+        st.session_state.play_hour = (t + 1) % 24
+        time.sleep(0.5)
+        st.rerun()
     else:
-        render_main(hour)
+        st.session_state.play_hour = hour  # ⭐关键
+        render_dashboard_main(hour)
 
     st.markdown("---")
 
-    r1c1, r1c2 = st.columns(2)
-    with r1c1:
-        st.plotly_chart(line_chart(hours, inflow, "24小时入流曲线", "入流(m³/s)"), width="stretch")
-    with r1c2:
-        st.plotly_chart(line_chart(hours, price, "24小时电价曲线", "电价"), width="stretch")
+    row_a1, row_a2 = st.columns(2)
+    with row_a1:
+        st.plotly_chart(
+            line_chart(hours, inflow, "24小时入流曲线", "入流(m³/s)"),
+            width="stretch"
+        )
+    with row_a2:
+        st.plotly_chart(
+            line_chart(hours, price, "24小时电价曲线", "电价"),
+            width="stretch"
+        )
 
-    r2c1, r2c2 = st.columns(2)
-    with r2c1:
-        st.plotly_chart(line_chart(hours, Q, f"{algo} 调度出流曲线", "出流(m³/s)"), width="stretch")
-    with r2c2:
-        st.plotly_chart(line_chart(np.arange(25), detail["S"], f"{algo} 库容变化曲线", "库容"), width="stretch")
-
-    r3c1, r3c2 = st.columns(2)
-    with r3c1:
-        st.plotly_chart(line_chart(hours, detail["power_mw"], f"{algo} 出力曲线", "功率(MW)"), width="stretch")
-    with r3c2:
-        st.plotly_chart(line_chart(hours, detail["cum_revenue"], f"{algo} 累计收益曲线", "累计收益(元)"), width="stretch")
+    row_b1, row_b2 = st.columns(2)
+    with row_b1:
+        st.plotly_chart(
+            line_chart(hours, detail["power_mw"], f"{algo} 出力曲线", "功率(MW)"),
+            width="stretch"
+        )
+    with row_b2:
+        st.plotly_chart(
+            line_chart(hours, detail["cum_revenue"], f"{algo} 累计收益曲线", "累计收益(元)"),
+            width="stretch"
+        )
 
     hist = results[algo]["history"]
     if hist is not None:
@@ -1071,9 +2272,9 @@ if page_mode == "单策略分析":
         )
 
 else:
-    st.subheader("多策略运行对比")
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">多策略运行对比总览</div>', unsafe_allow_html=True)
 
-    compare_hour = hour if not auto_play else 12
     cc1, cc2, cc3, cc4 = st.columns(4)
     for col, name in zip([cc1, cc2, cc3, cc4], results.keys()):
         d = results[name]["detail"]
@@ -1082,6 +2283,8 @@ else:
             f"{d['revenue']:.0f} 元",
             delta=f"Obj={d['objective']:.0f}"
         )
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.plotly_chart(
         multi_line_chart(
@@ -1093,8 +2296,8 @@ else:
         width="stretch"
     )
 
-    c_compare1, c_compare2 = st.columns(2)
-    with c_compare1:
+    compare_c1, compare_c2 = st.columns(2)
+    with compare_c1:
         st.plotly_chart(
             multi_line_chart(
                 np.arange(25),
@@ -1104,7 +2307,7 @@ else:
             ),
             width="stretch"
         )
-    with c_compare2:
+    with compare_c2:
         st.plotly_chart(
             multi_line_chart(
                 hours,
@@ -1117,18 +2320,10 @@ else:
 
     st.plotly_chart(compare_bar(results), width="stretch")
 
-st.markdown("---")
-
-table_data = pd.DataFrame({
-    "方法": list(results.keys()),
-    "收益 Revenue": [results[k]["detail"]["revenue"] for k in results.keys()],
-    "平滑指标 Smooth": [results[k]["detail"]["smooth_penalty"] for k in results.keys()],
-    "弃水量 Spill": [results[k]["detail"]["spill"] for k in results.keys()],
-    "综合目标 Objective": [results[k]["detail"]["objective"] for k in results.keys()],
-})
-table_data["推荐"] = table_data["方法"].apply(lambda x: "是" if x == best_name else "")
-st.subheader("调度方案评价表")
-st.dataframe(table_data, width="stretch")
+st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+st.markdown('<div class="panel-title">调度结果评价表</div>', unsafe_allow_html=True)
+st.dataframe(table_data, use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 csv_bytes = table_data.to_csv(index=False).encode("utf-8-sig")
 st.download_button(
