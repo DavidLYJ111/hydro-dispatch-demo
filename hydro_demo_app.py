@@ -194,53 +194,53 @@ def inject_dashboard_css():
         color: #0b223a !important;   /* 深色字 */
         background-color: #ffffff !important;
     }
-
+    
     /* ⭐ slider 数值颜色 */
     section[data-testid="stSidebar"] .stSlider div {
         color: #ffffff !important;
     }   
-
+    
      /* ⭐ 修复 selectbox（当前策略）文字颜色 */
     section[data-testid="stSidebar"] div[role="combobox"] {
         color: #0b223a !important;
         background-color: #ffffff !important;
     }
-
+    
     /* ⭐ 下拉展开后的选项 */
     section[data-testid="stSidebar"] div[role="listbox"] {
         color: #0b223a !important;
     }
-
+    
     /* ⭐ 选中项文本 */
     section[data-testid="stSidebar"] div[role="combobox"] span {
         color: #0b223a !important;
     }
-
+    
     /* ⭐ 强制修复 selectbox 当前显示文字 */
     section[data-testid="stSidebar"] div[role="combobox"] * {
         color: #0b223a !important;
     }
-
+    
     /* ⭐ 重点：锁定真正显示文字的 span */
     section[data-testid="stSidebar"] div[role="combobox"] span {
         color: #0b223a !important;
     }
-
+    
     /* ⭐ 输入状态（光标输入时） */
     section[data-testid="stSidebar"] input {
         color: #0b223a !important;
     }
-
+    
     /* ⭐ 下拉菜单 */
     section[data-testid="stSidebar"] div[role="listbox"] * {
         color: #0b223a !important;
     }
-
+    
     /* ⭐ 背景统一 */
     section[data-testid="stSidebar"] div[role="combobox"] {
         background-color: #ffffff !important;
     }
-
+    
     /* ⭐ 侧边栏标题统一变白 */
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
@@ -248,20 +248,20 @@ def inject_dashboard_css():
     section[data-testid="stSidebar"] h4 {
         color: #ffffff !important;
     }
-
+    
     /* ⭐ 演示按钮可见性修复 */
     section[data-testid="stSidebar"] button {
         background-color: #1f4e79 !important;
         color: #ffffff !important;
         border: 1px solid rgba(255,255,255,0.3) !important;
     }
-
+    
     /* ⭐ hover效果 */
     section[data-testid="stSidebar"] button:hover {
         background-color: #2f6fa5 !important;
         color: #ffffff !important;
     }
-
+    
     </style>
     """, unsafe_allow_html=True)
 
@@ -277,10 +277,10 @@ def make_synthetic_inputs(seed=42):
     inflow = np.clip(inflow, 60, 200)
 
     price = (
-            200
-            + 120 * np.exp(-0.5 * ((hours - 19) / 3) ** 2)
-            + 40 * np.exp(-0.5 * ((hours - 10) / 4) ** 2)
-            + rng.normal(0, 5, size=24)
+        200
+        + 120 * np.exp(-0.5 * ((hours - 19) / 3) ** 2)
+        + 40 * np.exp(-0.5 * ((hours - 10) / 4) ** 2)
+        + rng.normal(0, 5, size=24)
     )
     price = np.clip(price, 100, 450)
 
@@ -438,16 +438,16 @@ def pso_optimize(inflow, price, params, n_particles=30, n_iters=50, w=0.7, c1=1.
 
 
 def apso_ls_optimize(
-        inflow, price, params,
-        n_particles=30, n_iters=50,
-        w_max=0.95, w_min=0.45, decay_k=3.0,
-        c1=1.6, c2=1.6,
-        stagnation_window=8,
-        w_boost=0.12,
-        v_clip=30.0,
-        seed=3,
-        ls_trials=80,
-        ls_sigma=6.0,
+    inflow, price, params,
+    n_particles=30, n_iters=50,
+    w_max=0.95, w_min=0.45, decay_k=3.0,
+    c1=1.6, c2=1.6,
+    stagnation_window=8,
+    w_boost=0.12,
+    v_clip=30.0,
+    seed=3,
+    ls_trials=80,
+    ls_sigma=6.0,
 ):
     rng = np.random.default_rng(seed)
     dim = 24
@@ -513,10 +513,10 @@ def apso_ls_optimize(
 
 
 def ga_optimize(
-        inflow, price, params,
-        pop_size=40, n_gens=50,
-        cx_prob=0.9, mut_prob=0.25, mut_sigma=10.0,
-        elite_k=2, seed=7
+    inflow, price, params,
+    pop_size=40, n_gens=50,
+    cx_prob=0.9, mut_prob=0.25, mut_sigma=10.0,
+    elite_k=2, seed=7
 ):
     rng = np.random.default_rng(seed)
     dim = 24
@@ -982,6 +982,7 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
 
 
 def build_threejs_html(detail, Q, inflow, hour, auto_play):
+
     import json
     import base64
 
@@ -1251,14 +1252,14 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
 
         function riverHalfWidthBase(x) {
             const t = smoothstep(4.0, 120.0, x);
-
+        
             const Q = state.Q;
-
+        
             // ⭐ 在坝附近放大宽度
             const damBoost = Math.exp(-Math.pow((x - 5.0)/6.0, 2.0)) * 25;
-
+        
             const widthQ = 0.3 * Math.sqrt(Q);
-
+        
             return 8.0 + t * 12.0 + widthQ + damBoost;
         }
 
@@ -1555,9 +1556,9 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
                 mesh.renderOrder = 1;   // ⭐关键：水后画
                 dynamicGroup.add(mesh);
         }
-
-
-
+        
+        
+        
         function addRiverWater() {
             const length = 136.0;
             const width = 34.0;
@@ -1856,7 +1857,6 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
 """
     return html
 
-
 def line_chart(hours, y, title, yname):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -2026,6 +2026,7 @@ with st.sidebar:
     else:
         hour = 0
 
+
 # =========================================================
 # 6. 主界面
 # =========================================================
@@ -2074,6 +2075,9 @@ with st.expander("系统说明", expanded=False):
 alerts = build_alerts(detail, params, hour if not auto_play else 0)
 for msg in alerts:
     st.info(msg)
+
+
+
 
 
 def render_dashboard_main(hour, strategy_override=None):
@@ -2221,8 +2225,8 @@ if st.session_state.demo_mode:
     if st.session_state.demo_hour >= 24:
         st.session_state.demo_hour = 0
         st.session_state.demo_strategy_idx = (
-                                                     st.session_state.demo_strategy_idx + 1
-                                             ) % len(strategies)
+            st.session_state.demo_strategy_idx + 1
+        ) % len(strategies)
 
     time.sleep(0.6)
     st.rerun()
@@ -2235,7 +2239,7 @@ if page_mode == "单策略分析":
         time.sleep(0.5)
         st.rerun()
     else:
-        st.session_state.play_hour = hour  # ⭐关键
+        st.session_state.play_hour = hour   # ⭐关键
         render_dashboard_main(hour)
 
     st.markdown("---")
