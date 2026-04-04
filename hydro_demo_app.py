@@ -6,29 +6,32 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
+# ===== Session 初始化（必须在最前）=====
+if "play_hour" not in st.session_state:
+    st.session_state.play_hour = 0
+
+if "demo_mode" not in st.session_state:
+    st.session_state.demo_mode = False
+
+if "demo_hour" not in st.session_state:
+    st.session_state.demo_hour = 0
+
+if "demo_strategy_idx" not in st.session_state:
+    st.session_state.demo_strategy_idx = 0
+
+if "demo_speed" not in st.session_state:
+    st.session_state.demo_speed = 1.0
+
 st.set_page_config(page_title="智调水电Demo", layout="wide")
 
 
 def inject_dashboard_css():
-    if "play_hour" not in st.session_state:
-        st.session_state.play_hour = 0
-    if "demo_mode" not in st.session_state:
-        st.session_state.demo_mode = False
-
-    if "demo_hour" not in st.session_state:
-        st.session_state.demo_hour = 0
-
-    if "demo_strategy_idx" not in st.session_state:
-        st.session_state.demo_strategy_idx = 0
 
     st.markdown("""
     <style>
     .stApp {
-        background:
-            radial-gradient(circle at top left, rgba(110, 191, 255, 0.18), transparent 28%),
-            radial-gradient(circle at top right, rgba(116, 255, 214, 0.12), transparent 24%),
-            linear-gradient(180deg, #edf6ff 0%, #dff0ff 45%, #d7ebfb 100%);
-        color: #17324d;
+        background: #F5F7FA;
+        color: #1F2937;
     }
 
     .block-container {
@@ -53,41 +56,30 @@ def inject_dashboard_css():
     }
 
     .dashboard-title {
-        padding: 16px 20px;
-        border: 1px solid rgba(102, 168, 232, 0.30);
-        border-radius: 18px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(241,248,255,0.90));
-        box-shadow: 0 10px 28px rgba(53, 126, 189, 0.12);
+        background: linear-gradient(135deg, #e6f4ff 0%, #f0f9ff 100%);
+        border: 1px solid #c7e0ff;
+        padding: 20px 24px;
+        border-radius: 12px;
         margin-bottom: 12px;
     }
-
+    
     .dashboard-title h1 {
-        margin: 0;
-        font-size: 30px;
-        font-weight: 800;
-        letter-spacing: 0.6px;
-        color: #0f3b63;
+        color: #111827;
     }
-
+    
     .dashboard-title p {
-        margin: 6px 0 0 0;
-        color: #4f769a;
-        font-size: 14px;
+        color: #6B7280;
     }
 
     .panel-card {
-        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(243,249,255,0.92));
-        border: 1px solid rgba(103, 173, 235, 0.28);
-        border-radius: 18px;
-        padding: 14px 14px 10px 14px;
-        box-shadow: 0 10px 24px rgba(54, 122, 183, 0.10);
-        margin-bottom: 12px;
+        background: #f4f9ff;
+        border: 1px solid #dbeafe;
     }
 
     .panel-title {
         font-size: 15px;
         font-weight: 800;
-        color: #0d5588;
+        color: #111827;
         margin-bottom: 10px;
         letter-spacing: 0.3px;
     }
@@ -102,37 +94,35 @@ def inject_dashboard_css():
     .status-chip {
         padding: 6px 12px;
         border-radius: 999px;
-        background: rgba(112, 192, 255, 0.10);
-        border: 1px solid rgba(93, 171, 236, 0.28);
-        color: #27597f;
+        background: rgba(34, 211, 238, 0.12);
+        border: 1px solid rgba(34, 211, 238, 0.32);
+        color: #d7f6ff;
         font-size: 12px;
         font-weight: 600;
     }
 
     div[data-testid="metric-container"] {
-        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(244,249,255,0.94));
-        border: 1px solid rgba(98, 170, 235, 0.25);
+        background: linear-gradient(180deg, rgba(9, 35, 63, 0.62), rgba(8, 24, 44, 0.58));
+        border: 1px solid rgba(34, 211, 238, 0.22);
         border-radius: 16px;
         padding: 10px 12px;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35), 0 8px 20px rgba(62, 129, 189, 0.08);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 10px 22px rgba(0,0,0,0.30);
+        backdrop-filter: blur(6px);
     }
 
     div[data-testid="metric-container"] label {
-        color: #5a7ea0 !important;
+        color: #8ec6ef !important;
         font-weight: 600;
     }
 
     div[data-testid="metric-container"] [data-testid="stMetricValue"] {
-        color: #183a59 !important;
+        color: #e4f4ff !important;
     }
 
     .main-3d-wrap {
-        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(243,249,255,0.92));
-        border: 1px solid rgba(102, 170, 232, 0.28);
-        border-radius: 20px;
-        padding: 14px;
-        box-shadow: 0 10px 24px rgba(54, 122, 183, 0.10);
-        margin-bottom: 12px;
+        background: #FFFFFF;
+        border: 1px solid #E5EAF0;
+        border-radius: 16px;
     }
 
     .main-3d-title {
@@ -145,26 +135,22 @@ def inject_dashboard_css():
     .main-3d-title-left {
         font-size: 17px;
         font-weight: 800;
-        color: #0f4f80;
+        color: #c7f2ff;
         letter-spacing: 0.3px;
     }
 
     .main-3d-title-right {
         font-size: 12px;
-        color: #4f769a;
-        background: rgba(122, 196, 255, 0.10);
-        border: 1px solid rgba(102, 170, 232, 0.24);
+        color: #95d9ff;
+        background: rgba(10, 132, 255, 0.15);
+        border: 1px solid rgba(34, 211, 238, 0.24);
         border-radius: 999px;
         padding: 5px 10px;
     }
 
     .chart-panel {
-        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(243,249,255,0.92));
-        border: 1px solid rgba(102, 170, 232, 0.24);
-        border-radius: 18px;
-        padding: 10px 10px 4px 10px;
-        margin-top: 10px;
-        box-shadow: 0 8px 22px rgba(54, 122, 183, 0.08);
+        background: #FFFFFF;
+        border: 1px solid #E5EAF0;
     }
 
     .stAlert {
@@ -183,9 +169,42 @@ def inject_dashboard_css():
     .element-container iframe {
         border-radius: 18px;
         overflow: hidden;
-        border: 1px solid rgba(102, 170, 232, 0.24);
-        box-shadow: 0 10px 24px rgba(54, 122, 183, 0.10);
-        background: #eef7ff;
+        border: 1px solid rgba(34, 211, 238, 0.22);
+        box-shadow: 0 10px 24px rgba(0, 10, 26, 0.36);
+        background: #ffffff;
+    }
+
+    .kpi-best {
+        border: 1px solid rgba(255, 209, 102, 0.55);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 209, 102, 0.18), rgba(255, 209, 102, 0.08));
+        color: #ffeab5;
+        padding: 8px 12px;
+        margin-top: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 6px 16px rgba(255, 209, 102, 0.18);
+    }
+
+    .demo-running {
+        margin-top: 8px;
+        margin-bottom: 6px;
+        display: inline-block;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.22);
+        border: 1px solid rgba(74, 222, 128, 0.55);
+        color: #bbf7d0;
+        font-weight: 700;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .analysis-title {
+        color: #bcecff;
+        font-size: 16px;
+        font-weight: 800;
+        margin-top: 14px;
+        margin-bottom: 6px;
     }
      /* ⭐ 修复输入框/选择框文字看不见 */
     section[data-testid="stSidebar"] input,
@@ -194,53 +213,53 @@ def inject_dashboard_css():
         color: #0b223a !important;   /* 深色字 */
         background-color: #ffffff !important;
     }
-    
+
     /* ⭐ slider 数值颜色 */
     section[data-testid="stSidebar"] .stSlider div {
         color: #ffffff !important;
     }   
-    
+
      /* ⭐ 修复 selectbox（当前策略）文字颜色 */
     section[data-testid="stSidebar"] div[role="combobox"] {
         color: #0b223a !important;
         background-color: #ffffff !important;
     }
-    
+
     /* ⭐ 下拉展开后的选项 */
     section[data-testid="stSidebar"] div[role="listbox"] {
         color: #0b223a !important;
     }
-    
+
     /* ⭐ 选中项文本 */
     section[data-testid="stSidebar"] div[role="combobox"] span {
         color: #0b223a !important;
     }
-    
+
     /* ⭐ 强制修复 selectbox 当前显示文字 */
     section[data-testid="stSidebar"] div[role="combobox"] * {
         color: #0b223a !important;
     }
-    
+
     /* ⭐ 重点：锁定真正显示文字的 span */
     section[data-testid="stSidebar"] div[role="combobox"] span {
         color: #0b223a !important;
     }
-    
+
     /* ⭐ 输入状态（光标输入时） */
     section[data-testid="stSidebar"] input {
         color: #0b223a !important;
     }
-    
+
     /* ⭐ 下拉菜单 */
     section[data-testid="stSidebar"] div[role="listbox"] * {
         color: #0b223a !important;
     }
-    
+
     /* ⭐ 背景统一 */
     section[data-testid="stSidebar"] div[role="combobox"] {
         background-color: #ffffff !important;
     }
-    
+
     /* ⭐ 侧边栏标题统一变白 */
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
@@ -248,20 +267,20 @@ def inject_dashboard_css():
     section[data-testid="stSidebar"] h4 {
         color: #ffffff !important;
     }
-    
+
     /* ⭐ 演示按钮可见性修复 */
     section[data-testid="stSidebar"] button {
         background-color: #1f4e79 !important;
         color: #ffffff !important;
         border: 1px solid rgba(255,255,255,0.3) !important;
     }
-    
+
     /* ⭐ hover效果 */
     section[data-testid="stSidebar"] button:hover {
         background-color: #2f6fa5 !important;
         color: #ffffff !important;
     }
-    
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -277,10 +296,10 @@ def make_synthetic_inputs(seed=42):
     inflow = np.clip(inflow, 60, 200)
 
     price = (
-        200
-        + 120 * np.exp(-0.5 * ((hours - 19) / 3) ** 2)
-        + 40 * np.exp(-0.5 * ((hours - 10) / 4) ** 2)
-        + rng.normal(0, 5, size=24)
+            200
+            + 120 * np.exp(-0.5 * ((hours - 19) / 3) ** 2)
+            + 40 * np.exp(-0.5 * ((hours - 10) / 4) ** 2)
+            + rng.normal(0, 5, size=24)
     )
     price = np.clip(price, 100, 450)
 
@@ -438,16 +457,16 @@ def pso_optimize(inflow, price, params, n_particles=30, n_iters=50, w=0.7, c1=1.
 
 
 def apso_ls_optimize(
-    inflow, price, params,
-    n_particles=30, n_iters=50,
-    w_max=0.95, w_min=0.45, decay_k=3.0,
-    c1=1.6, c2=1.6,
-    stagnation_window=8,
-    w_boost=0.12,
-    v_clip=30.0,
-    seed=3,
-    ls_trials=80,
-    ls_sigma=6.0,
+        inflow, price, params,
+        n_particles=30, n_iters=50,
+        w_max=0.95, w_min=0.45, decay_k=3.0,
+        c1=1.6, c2=1.6,
+        stagnation_window=8,
+        w_boost=0.12,
+        v_clip=30.0,
+        seed=3,
+        ls_trials=80,
+        ls_sigma=6.0,
 ):
     rng = np.random.default_rng(seed)
     dim = 24
@@ -513,10 +532,10 @@ def apso_ls_optimize(
 
 
 def ga_optimize(
-    inflow, price, params,
-    pop_size=40, n_gens=50,
-    cx_prob=0.9, mut_prob=0.25, mut_sigma=10.0,
-    elite_k=2, seed=7
+        inflow, price, params,
+        pop_size=40, n_gens=50,
+        cx_prob=0.9, mut_prob=0.25, mut_sigma=10.0,
+        elite_k=2, seed=7
 ):
     rng = np.random.default_rng(seed)
     dim = 24
@@ -578,202 +597,696 @@ def ga_optimize(
 # 3. 绘图
 # =========================================================
 def build_reservoir_scene_2d(storage, params, release, inflow, power, hour):
-    s_min = params["S_min"]
-    s_max = params["S_max"]
-    level_ratio = (storage - s_min) / (s_max - s_min)
-    level_ratio = float(np.clip(level_ratio, 0.08, 0.98))
-    water_y = 20 + 24 * level_ratio
+    import numpy as np
+    import plotly.graph_objects as go
+
+    if "action" in st.session_state:
+        if st.session_state["action"] == "increase_release":
+            release *= 1.2
+    # =========================
+    # 1) 数据归一化（不改算法，只做显示映射）
+    # =========================
+    s_min = float(params["S_min"])
+    s_max = float(params["S_max"])
+    q_min = float(params["Q_min"])
+    q_max = float(params["Q_max"])
+
+    storage_ratio = (float(storage) - s_min) / (s_max - s_min + 1e-9)
+    storage_ratio = float(np.clip(storage_ratio, 0.0, 1.0))
+
+    release_ratio = (float(release) - q_min) / (q_max - q_min + 1e-9)
+    inflow_ratio = (float(inflow) - q_min) / (q_max - q_min + 1e-9)
+    release_ratio = float(np.clip(release_ratio, 0.0, 1.0))
+    inflow_ratio = float(np.clip(inflow_ratio, 0.0, 1.0))
+
+    # 水位高度（工业示意映射）
+    water_y = 28 + 26 * storage_ratio
+
+    # 下泄主通道厚度 / 入流箭头粗细
+    release_thickness = 4.0 + 10.0 * release_ratio
+    inflow_arrow_width = 2.0 + 7.0 * inflow_ratio
+
+    # 发电强度仅用于视觉亮度，不影响逻辑
+    power_ratio = float(np.clip(power / 120.0, 0.0, 1.0))
+
+    # =========================
+    # 2) 统一工业白底科研风配色
+    # =========================
+    c_bg = "#F7FAFC"
+    c_panel = "#FFFFFF"
+    c_panel_border = "#D9E2EC"
+
+    c_mountain = "#D6DEE6"
+    c_terrain = "#E8EEF4"
+    c_dam_main = "#AAB4C0"
+    c_dam_edge = "#6B7785"
+    c_gate = "#7D8B99"
+    c_water = "#4DA3D9"
+    c_water_deep = "#2E7FB7"
+    c_water_light = "#BFE6FA"
+    c_flow = "#1683C7"
+    c_flow_soft = "rgba(22,131,199,0.18)"
+    c_inflow = "#23A36D"
+    c_power = "#F59E0B"
+    c_text = "#243746"
+    c_subtext = "#61758A"
+    c_grid = "rgba(80,110,140,0.10)"
 
     fig = go.Figure()
 
+    # =========================
+    # 3) 背景分层（工业面板感）
+    # =========================
+    # 外框底板
+    fig.add_shape(
+        type="rect", x0=0, x1=100, y0=0, y1=70,
+        line=dict(color="#E4EBF2", width=1),
+        fillcolor=c_bg,
+        layer="below"
+    )
+
+    # 上部结构区域
+    fig.add_shape(
+        type="rect", x0=0, x1=100, y0=8, y1=66,
+        line=dict(color="rgba(0,0,0,0)", width=0),
+        fillcolor="#FBFDFF",
+        layer="below"
+    )
+
+    # 下部信息带
+    fig.add_shape(
+        type="rect", x0=0, x1=100, y0=0, y1=8,
+        line=dict(color="#E4EBF2", width=1),
+        fillcolor="#F3F7FA",
+        layer="below"
+    )
+
+    # 轻网格线
+    for xg in np.linspace(8, 92, 8):
+        fig.add_shape(
+            type="line", x0=xg, x1=xg, y0=10, y1=64,
+            line=dict(color=c_grid, width=1),
+            layer="below"
+        )
+    for yg in [18, 28, 38, 48, 58]:
+        fig.add_shape(
+            type="line", x0=6, x1=94, y0=yg, y1=yg,
+            line=dict(color=c_grid, width=1),
+            layer="below"
+        )
+
+    # =========================
+    # 4) 山体 / 地形轮廓（更偏平台工业风）
+    # =========================
+    terrain_x = [0, 8, 16, 25, 35, 48, 58, 68, 78, 88, 100, 100, 0]
+    terrain_y = [60, 63, 58, 64, 57, 62, 56, 61, 58, 63, 60, 8, 8]
     fig.add_trace(go.Scatter(
-        x=[0, 10, 22, 38, 54, 70, 86, 100, 100, 0],
-        y=[80, 92, 78, 94, 76, 90, 82, 96, 0, 0],
+        x=terrain_x, y=terrain_y,
         fill="toself",
         mode="lines",
-        line=dict(color="#a77c45", width=2),
-        fillcolor="rgba(181, 146, 92, 0.55)",
-        showlegend=False,
-        hoverinfo="skip"
+        line=dict(color="#C7D1DB", width=1.5),
+        fillcolor=c_terrain,
+        hoverinfo="skip",
+        showlegend=False
     ))
 
+    # 远景浅层
+    terrain2_x = [0, 12, 24, 37, 50, 65, 80, 100, 100, 0]
+    terrain2_y = [54, 57, 53, 58, 54, 57, 55, 58, 48, 48]
     fig.add_trace(go.Scatter(
-        x=[0, 12, 24, 76, 88, 100, 100, 0],
-        y=[0, 18, 34, 34, 18, 0, -2, -2],
+        x=terrain2_x, y=terrain2_y,
         fill="toself",
         mode="lines",
-        line=dict(color="#7daa52", width=2),
-        fillcolor="rgba(136, 179, 96, 0.70)",
-        showlegend=False,
-        hoverinfo="skip"
+        line=dict(color="rgba(0,0,0,0)", width=0),
+        fillcolor="rgba(214,222,230,0.55)",
+        hoverinfo="skip",
+        showlegend=False
     ))
 
+    # =========================
+    # 5) 水库水体（动态水位）
+    # =========================
+    water_poly_x = [14, 20, 61, 66, 66, 14]
+    water_poly_y = [14, water_y, water_y, water_y - 2.8, 14, 14]
+
     fig.add_trace(go.Scatter(
-        x=[16, 26, 74, 84, 84, 16],
-        y=[water_y - 3, water_y, water_y, water_y - 3, 8, 8],
+        x=water_poly_x, y=water_poly_y,
         fill="toself",
         mode="lines",
-        line=dict(color="#36a9e1", width=2),
-        fillcolor="rgba(88, 194, 244, 0.75)",
-        showlegend=False,
-        hoverinfo="skip"
+        line=dict(color=c_water_deep, width=2),
+        fillcolor="rgba(77,163,217,0.78)",
+        hoverinfo="skip",
+        showlegend=False
     ))
 
+    # 水体高光层
     fig.add_trace(go.Scatter(
-        x=[26, 74, 80, 20],
-        y=[water_y - 1, water_y - 1, water_y - 4, water_y - 4],
+        x=[19, 60, 63, 22],
+        y=[water_y - 0.8, water_y - 0.8, water_y - 2.0, water_y - 2.0],
         fill="toself",
         mode="lines",
-        line=dict(color="rgba(255,255,255,0)"),
-        fillcolor="rgba(180, 235, 255, 0.18)",
-        showlegend=False,
-        hoverinfo="skip"
+        line=dict(color="rgba(0,0,0,0)", width=0),
+        fillcolor="rgba(255,255,255,0.18)",
+        hoverinfo="skip",
+        showlegend=False
     ))
 
+    # 水位线
     fig.add_trace(go.Scatter(
-        x=[72, 86, 88, 74],
-        y=[14, 14, 54, 54],
-        fill="toself",
-        mode="lines",
-        line=dict(color="#7f8894", width=2),
-        fillcolor="rgba(160, 166, 174, 0.96)",
-        showlegend=False,
-        hoverinfo="skip"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=[86, 90, 92, 88],
-        y=[14, 18, 58, 54],
-        fill="toself",
-        mode="lines",
-        line=dict(color="#6d7682", width=1.5),
-        fillcolor="rgba(120, 128, 138, 0.92)",
-        showlegend=False,
-        hoverinfo="skip"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=[74, 88],
-        y=[54, 54],
-        mode="lines",
-        line=dict(color="#cfd6de", width=3),
-        showlegend=False,
-        hoverinfo="skip"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=[67, 72, 72, 67, 67],
-        y=[10, 10, 16, 16, 10],
-        fill="toself",
-        mode="lines",
-        line=dict(color="#8b5a2b", width=1.5),
-        fillcolor="rgba(210, 170, 110, 0.95)",
-        showlegend=False,
-        hoverinfo="skip"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=[24, 71],
+        x=[18, 64],
         y=[water_y, water_y],
         mode="lines",
-        line=dict(color="#1f77b4", width=2, dash="dash"),
-        showlegend=False,
-        hoverinfo="skip"
+        line=dict(color="#1E6FAE", width=2.2, dash="dash"),
+        hoverinfo="skip",
+        showlegend=False
     ))
 
+    # 水位刻度尺
+    fig.add_shape(
+        type="line", x0=12.2, x1=12.2, y0=14, y1=56,
+        line=dict(color="#90A4B8", width=2)
+    )
+    for yt in [18, 26, 34, 42, 50]:
+        fig.add_shape(
+            type="line", x0=11.2, x1=12.8, y0=yt, y1=yt,
+            line=dict(color="#90A4B8", width=1.2)
+        )
+
+    # =========================
+    # 6) 坝体 / 闸门 / 厂房（工业化几何）
+    # =========================
+    # 坝体主块
+    dam_x = [61, 68, 70, 66, 61]
+    dam_y = [14, 14, 56, 56, 14]
     fig.add_trace(go.Scatter(
-        x=[88.5, 88.5],
-        y=[28, 40],
+        x=dam_x, y=dam_y,
+        fill="toself",
         mode="lines",
-        line=dict(color="#2f9bff", width=5),
-        showlegend=False,
-        hoverinfo="skip"
+        line=dict(color=c_dam_edge, width=2.5),
+        fillcolor=c_dam_main,
+        hoverinfo="skip",
+        showlegend=False
     ))
 
-    fig.add_annotation(
-        x=15, y=12, ax=4, ay=12,
-        xref="x", yref="y", axref="x", ayref="y",
-        showarrow=True, arrowhead=3, arrowsize=1.5, arrowwidth=3, arrowcolor="#2fb344"
-    )
-    fig.add_annotation(x=10, y=7, text="入流", showarrow=False, font=dict(size=11, color="#1f7a1f"))
+    # 坝体阴影立面
+    fig.add_trace(go.Scatter(
+        x=[68, 71.2, 73.2, 70, 68],
+        y=[14, 14.6, 56.8, 56, 14],
+        fill="toself",
+        mode="lines",
+        line=dict(color="#7B8794", width=1.5),
+        fillcolor="rgba(125,139,153,0.78)",
+        hoverinfo="skip",
+        showlegend=False
+    ))
 
-    fig.add_annotation(
-        x=90, y=30, ax=99, ay=30,
-        xref="x", yref="y", axref="x", ayref="y",
-        showarrow=True, arrowhead=3, arrowsize=1.5, arrowwidth=3, arrowcolor="#2f9bff"
-    )
-    fig.add_annotation(x=95, y=34, text="泄流", showarrow=False, font=dict(size=11, color="#1f6ed4"))
+    # 闸门结构
+    gate_x = [67.8, 69.0, 69.0, 67.8, 67.8]
+    gate_y = [28, 28, 44, 44, 28]
+    fig.add_trace(go.Scatter(
+        x=gate_x, y=gate_y,
+        fill="toself",
+        mode="lines",
+        line=dict(color="#5E6C79", width=1.5),
+        fillcolor=c_gate,
+        hoverinfo="skip",
+        showlegend=False
+    ))
 
-    fig.add_annotation(x=50, y=28, text="某某河水库", showarrow=False, font=dict(size=22, color="#0f3b63"))
+    # 厂房
+    plant_x = [56.5, 61, 61, 56.5, 56.5]
+    plant_y = [12.2, 12.2, 18.2, 18.2, 12.2]
+    fig.add_trace(go.Scatter(
+        x=plant_x, y=plant_y,
+        fill="toself",
+        mode="lines",
+        line=dict(color="#8C6A3A", width=1.5),
+        fillcolor="#C9A46D",
+        hoverinfo="skip",
+        showlegend=False
+    ))
+
+    # 厂房发电高亮
+    fig.add_shape(
+        type="rect",
+        x0=57.0, x1=60.5, y0=13.0, y1=17.4,
+        line=dict(color="rgba(0,0,0,0)", width=0),
+        fillcolor=f"rgba(245,158,11,{0.15 + 0.35 * power_ratio})"
+    )
+
+    # =========================
+    # 7) 入流动态（箭头+流线）
+    # =========================
+    # 入流主管线
+    fig.add_trace(go.Scatter(
+        x=[3, 10.5, 15.0],
+        y=[water_y + 3.5, water_y + 2.0, water_y + 1.0],
+        mode="lines",
+        line=dict(color=c_inflow, width=inflow_arrow_width),
+        hoverinfo="skip",
+        showlegend=False
+    ))
+
+    # 入流箭头
     fig.add_annotation(
-        x=12, y=66,
-        text=f"第 {hour:02d} 时<br>水位比例: {level_ratio:.2f}",
+        x=15.0, y=water_y + 1.0,
+        ax=7.2, ay=water_y + 2.7,
+        xref="x", yref="y", axref="x", ayref="y",
+        showarrow=True,
+        arrowhead=3,
+        arrowsize=1.2,
+        arrowwidth=max(1.6, inflow_arrow_width * 0.75),
+        arrowcolor=c_inflow
+    )
+
+    # 入流水纹辅助
+    for dx in [0.0, 1.6, 3.2]:
+        fig.add_trace(go.Scatter(
+            x=[2.0 + dx, 5.5 + dx, 9.0 + dx],
+            y=[water_y + 6.2, water_y + 5.5, water_y + 4.8],
+            mode="lines",
+            line=dict(color="rgba(35,163,109,0.18)", width=1.4),
+            hoverinfo="skip",
+            showlegend=False
+        ))
+
+    # =========================
+    # 8) 下泄动态（宽度 / 多条流线 / 箭头）
+    # =========================
+    # 主泄流带
+    fig.add_trace(go.Scatter(
+        x=[69.0, 75.0, 83.0, 92.0],
+        y=[36.0, 34.5, 31.8, 30.0],
+        mode="lines",
+        line=dict(color=c_flow, width=release_thickness),
+        hoverinfo="skip",
+        showlegend=False
+    ))
+
+    # 上下两条辅助流线，形成“流量宽度感”
+    aux_offset = 0.8 + 2.2 * release_ratio
+    fig.add_trace(go.Scatter(
+        x=[69.0, 75.0, 83.0, 92.0],
+        y=[36.0 + aux_offset, 34.5 + aux_offset, 31.8 + aux_offset, 30.0 + aux_offset],
+        mode="lines",
+        line=dict(color=c_flow_soft, width=max(1.2, release_thickness * 0.36)),
+        hoverinfo="skip",
+        showlegend=False
+    ))
+    fig.add_trace(go.Scatter(
+        x=[69.0, 75.0, 83.0, 92.0],
+        y=[36.0 - aux_offset, 34.5 - aux_offset, 31.8 - aux_offset, 30.0 - aux_offset],
+        mode="lines",
+        line=dict(color=c_flow_soft, width=max(1.2, release_thickness * 0.36)),
+        hoverinfo="skip",
+        showlegend=False
+    ))
+
+    # 末端箭头
+    fig.add_annotation(
+        x=92.0, y=30.0,
+        ax=84.5, ay=31.8,
+        xref="x", yref="y", axref="x", ayref="y",
+        showarrow=True,
+        arrowhead=3,
+        arrowsize=1.25,
+        arrowwidth=max(2.0, release_thickness * 0.62),
+        arrowcolor=c_flow
+    )
+
+    # =========================
+    # 9) 库容变化条 / 流量条 / 功率条（面板式工业信息）
+    # =========================
+    # 右上信息面板背景
+    fig.add_shape(
+        type="rect", x0=74.5, x1=98, y0=48.5, y1=64.5,
+        line=dict(color=c_panel_border, width=1),
+        fillcolor=c_panel
+    )
+
+    # 库容条
+    fig.add_shape(
+        type="rect", x0=77, x1=95, y0=59.0, y1=61.2,
+        line=dict(color="#D9E2EC", width=1),
+        fillcolor="#EEF3F7"
+    )
+    fig.add_shape(
+        type="rect", x0=77, x1=77 + 18 * storage_ratio, y0=59.0, y1=61.2,
+        line=dict(color="rgba(0,0,0,0)", width=0),
+        fillcolor=c_water
+    )
+
+    # 下泄条
+    fig.add_shape(
+        type="rect", x0=77, x1=95, y0=55.2, y1=57.4,
+        line=dict(color="#D9E2EC", width=1),
+        fillcolor="#EEF3F7"
+    )
+    fig.add_shape(
+        type="rect", x0=77, x1=77 + 18 * release_ratio, y0=55.2, y1=57.4,
+        line=dict(color="rgba(0,0,0,0)", width=0),
+        fillcolor=c_flow
+    )
+
+    # 功率条
+    fig.add_shape(
+        type="rect", x0=77, x1=95, y0=51.4, y1=53.6,
+        line=dict(color="#D9E2EC", width=1),
+        fillcolor="#EEF3F7"
+    )
+    fig.add_shape(
+        type="rect", x0=77, x1=77 + 18 * power_ratio, y0=51.4, y1=53.6,
+        line=dict(color="rgba(0,0,0,0)", width=0),
+        fillcolor=c_power
+    )
+
+    # =========================
+    # 10) 文本标注（统一科研平台风）
+    # =========================
+    fig.add_annotation(
+        x=7.5, y=62.5,
+        text="<b>Hydro Dispatch 2D Synoptic View</b>",
         showarrow=False,
-        align="left",
-        font=dict(size=13, color="#ffffff"),
-        bgcolor="rgba(0,0,0,0.35)",
-        bordercolor="rgba(255,255,255,0.15)",
+        font=dict(size=16, color=c_text),
+        xanchor="left"
+    )
+
+    fig.add_annotation(
+        x=7.5, y=59.4,
+        text=f"Hour {int(hour):02d}:00  |  工业二维运行示意",
+        showarrow=False,
+        font=dict(size=10.5, color=c_subtext),
+        xanchor="left"
+    )
+
+    fig.add_annotation(
+        x=38, y=water_y + 2.8,
+        text=f"坝前水位 {storage_ratio * 100:.1f}%",
+        showarrow=False,
+        font=dict(size=11, color="#1E6FAE"),
+        bgcolor="rgba(255,255,255,0.82)",
+        bordercolor="rgba(30,111,174,0.18)",
         borderwidth=1
     )
+
     fig.add_annotation(
-        x=47, y=water_y + 3,
-        text="坝前水位线",
+        x=10.5, y=water_y + 8.0,
+        text=f"入流 {float(inflow):.1f} m³/s",
         showarrow=False,
-        font=dict(size=11, color="#1f77b4"),
-        bgcolor="rgba(255,255,255,0.65)"
-    )
-    fig.add_annotation(
-        x=69.5, y=18.5,
-        text="厂房",
-        showarrow=False,
-        font=dict(size=11, color="#8b5a2b"),
-        bgcolor="rgba(255,255,255,0.65)"
-    )
-    fig.add_annotation(
-        x=84.5, y=43,
-        text="泄洪闸门",
-        showarrow=False,
-        font=dict(size=11, color="#1f6ed4"),
-        bgcolor="rgba(255,255,255,0.65)"
+        font=dict(size=10.5, color=c_inflow),
+        bgcolor="rgba(255,255,255,0.78)",
+        bordercolor="rgba(35,163,109,0.15)",
+        borderwidth=1
     )
 
+    fig.add_annotation(
+        x=84.5, y=26.2,
+        text=f"下泄 {float(release):.1f} m³/s",
+        showarrow=False,
+        font=dict(size=10.5, color=c_flow),
+        bgcolor="rgba(255,255,255,0.80)",
+        bordercolor="rgba(22,131,199,0.18)",
+        borderwidth=1
+    )
+
+    fig.add_annotation(
+        x=58.6, y=19.8,
+        text="厂房",
+        showarrow=False,
+        font=dict(size=10.5, color="#8C6A3A"),
+        bgcolor="rgba(255,255,255,0.76)"
+    )
+
+    fig.add_annotation(
+        x=66.0, y=58.8,
+        text="坝体",
+        showarrow=False,
+        font=dict(size=10.5, color=c_dam_edge),
+        bgcolor="rgba(255,255,255,0.76)"
+    )
+
+    fig.add_annotation(
+        x=68.4, y=46.0,
+        text="闸门",
+        showarrow=False,
+        font=dict(size=10.2, color="#5E6C79"),
+        bgcolor="rgba(255,255,255,0.76)"
+    )
+
+    # 右上统计文字
+    fig.add_annotation(
+        x=76.2, y=62.5,
+        text="<b>运行指标</b>",
+        showarrow=False,
+        xanchor="left",
+        font=dict(size=11.5, color=c_text)
+    )
+    fig.add_annotation(
+        x=76.2, y=60.1,
+        text=f"库容   {float(storage):.2f}",
+        showarrow=False,
+        xanchor="left",
+        font=dict(size=10.2, color=c_subtext)
+    )
+    fig.add_annotation(
+        x=76.2, y=56.3,
+        text=f"流量   {float(release):.2f}",
+        showarrow=False,
+        xanchor="left",
+        font=dict(size=10.2, color=c_subtext)
+    )
+    fig.add_annotation(
+        x=76.2, y=52.5,
+        text=f"出力   {float(power):.2f} MW",
+        showarrow=False,
+        xanchor="left",
+        font=dict(size=10.2, color=c_subtext)
+    )
+
+    # 底部状态栏
+    bottom_text = (
+        f"Storage={float(storage):.2f}  |  "
+        f"Inflow={float(inflow):.2f} m³/s  |  "
+        f"Release={float(release):.2f} m³/s  |  "
+        f"Power={float(power):.2f} MW"
+    )
+    fig.add_annotation(
+        x=50, y=4.0,
+        text=bottom_text,
+        showarrow=False,
+        font=dict(size=10.5, color=c_subtext)
+    )
+
+    # =========================
+    # 11) 布局（白底、无坐标轴、科研平台风）
+    # =========================
     fig.update_layout(
         height=430,
-        margin=dict(l=10, r=10, t=10, b=10),
-        paper_bgcolor="white",
-        plot_bgcolor="rgba(240,248,255,0.9)",
-        xaxis=dict(range=[0, 100], visible=False),
-        yaxis=dict(range=[0, 95], visible=False, scaleanchor="x", scaleratio=1),
+        margin=dict(l=8, r=8, t=8, b=8),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        xaxis=dict(
+            range=[0, 100],
+            visible=False,
+            fixedrange=True
+        ),
+        yaxis=dict(
+            range=[0, 70],
+            visible=False,
+            fixedrange=True,
+            scaleanchor="x",
+            scaleratio=1
+        ),
         showlegend=False,
         hovermode=False
     )
+
     return fig
 
 
 def apply_clean_layout(fig, title, x_title, y_title, height=280):
+    return apply_industrial_layout(fig, title, x_title, y_title, height=height)
+
+
+def apply_industrial_layout(fig, title, x_title, y_title, height=300):
     fig.update_layout(
-        title=title,
+        title=dict(
+            text=title,
+            font=dict(size=17, color="#111827"),
+            x=0.02
+        ),
         height=height,
-        margin=dict(l=20, r=20, t=42, b=20),
-        paper_bgcolor="white",
-        plot_bgcolor="rgba(245,249,255,1)",
-        font=dict(color="#1f2d3d"),
+        margin=dict(l=20, r=20, t=48, b=24),
+
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+
+        font=dict(color="#1F2937"),
+
+        hovermode="x unified",
+        hoverlabel=dict(
+            bgcolor="#FFFFFF",
+            font=dict(color="#111827")
+        ),
+
         xaxis=dict(
             title=x_title,
-            gridcolor="rgba(120,140,170,0.18)",
-            zerolinecolor="rgba(120,140,170,0.18)",
+            gridcolor="rgba(0,0,0,0.08)",
+            zerolinecolor="rgba(0,0,0,0.1)",
+            tickfont=dict(color="#374151"),
+            title_font=dict(color="#374151"),
         ),
+
         yaxis=dict(
             title=y_title,
-            gridcolor="rgba(120,140,170,0.18)",
-            zerolinecolor="rgba(120,140,170,0.18)",
+            gridcolor="rgba(0,0,0,0.08)",
+            zerolinecolor="rgba(0,0,0,0.1)",
+            tickfont=dict(color="#374151"),
+            title_font=dict(color="#374151"),
         ),
+
         legend=dict(
-            bgcolor="rgba(255,255,255,0.7)",
-            bordercolor="rgba(0,0,0,0.08)"
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#1F2937")
         )
     )
+
     return fig
+
+
+def add_current_hour_marker(fig, hour):
+    fig.add_vline(
+        x=hour,
+        line_width=1.6,
+        line_dash="dash",
+        line_color="#DC2626",
+        annotation_text=f"{int(hour):02d}:00",
+        annotation_position="top right",
+        annotation_font=dict(color="#FFD166", size=10),
+    )
+    return fig
+
+
+def line_chart(hours, y, title, yname, current_hour=None, color="#2563EB"):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=hours, y=y, mode="lines+markers",
+        line=dict(width=3, color=color), marker=dict(size=6, color=color), name=yname
+    ))
+    if current_hour is not None:
+        add_current_hour_marker(fig, current_hour)
+    return apply_industrial_layout(fig, title, "小时", yname, height=280)
+
+
+def multi_line_chart(hours, series_dict, title, yname, current_hour=None):
+    fig = go.Figure()
+    for name, y in series_dict.items():
+        highlight = (name == "APSO-LS")
+        fig.add_trace(go.Scatter(
+            x=hours, y=y, mode="lines+markers", name=name,
+            line=dict(width=4.2 if highlight else 2.1, color="#FFD166" if highlight else "#0A84FF"),
+            opacity=1.0 if highlight else 0.38,
+            marker=dict(size=6 if highlight else 4)
+        ))
+    if current_hour is not None:
+        add_current_hour_marker(fig, current_hour)
+    return apply_industrial_layout(fig, title, "小时", yname, height=310)
+
+
+def build_revenue_smooth_dual_axis(results):
+    names = list(results.keys())
+    revenue = [results[k]["detail"]["revenue"] for k in names]
+    smooth = [results[k]["detail"]["smooth_penalty"] for k in names]
+    colors = ["#FFD166" if n == "APSO-LS" else "rgba(34,211,238,0.65)" for n in names]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=names, y=revenue, name="总收益", marker_color=colors))
+    fig.add_trace(go.Scatter(
+        x=names, y=smooth, name="波动惩罚", yaxis="y2",
+        mode="lines+markers", line=dict(width=3, color="#2563EB"), marker=dict(size=7)
+    ))
+
+    fig.update_layout(
+        yaxis2=dict(
+            title="平滑惩罚",
+            overlaying="y",
+            side="right",
+            showgrid=False,
+            tickfont=dict(color="#9fd8ff"),
+            title_font=dict(color="#9fd8ff")
+        )
+    )
+    return apply_industrial_layout(fig, "收益-波动双轴分析", "策略", "总收益(元)", height=320)
+
+
+def build_strategy_contrast_chart(hours, results, current_hour=None):
+    return multi_line_chart(
+        hours,
+        {k: results[k]["Q"] for k in results.keys()},
+        "多策略对比强化图（APSO-LS高亮）",
+        "出流(m³/s)",
+        current_hour=current_hour
+    )
+
+
+def build_inflow_price_dual_axis(hours, inflow, price, current_hour=None):
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=hours, y=inflow, name="入流", marker_color="rgba(34,211,238,0.65)"))
+    fig.add_trace(go.Scatter(
+        x=hours, y=price, name="电价", yaxis="y2", mode="lines+markers",
+        line=dict(width=3, color="#0A84FF")
+    ))
+    fig.update_layout(
+        yaxis2=dict(
+            title="电价",
+            overlaying="y",
+            side="right",
+            showgrid=False,
+            tickfont=dict(color="#9fd8ff"),
+            title_font=dict(color="#9fd8ff")
+        )
+    )
+    if current_hour is not None:
+        add_current_hour_marker(fig, current_hour)
+    return apply_industrial_layout(fig, "入流 + 电价双轴图", "小时", "入流(m³/s)", height=300)
+
+
+def build_storage_power_dual_axis(hours, storage_24, power, current_hour=None):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=hours, y=storage_24, name="库容", mode="lines+markers",
+        line=dict(width=3, color="#22D3EE")
+    ))
+    fig.add_trace(go.Bar(
+        x=hours, y=power, name="出力", yaxis="y2",
+        marker_color="rgba(10,132,255,0.55)"
+    ))
+    fig.update_layout(
+        yaxis2=dict(
+            title="出力(MW)",
+            overlaying="y",
+            side="right",
+            showgrid=False,
+            tickfont=dict(color="#9fd8ff"),
+            title_font=dict(color="#9fd8ff")
+        )
+    )
+    if current_hour is not None:
+        add_current_hour_marker(fig, current_hour)
+    return apply_industrial_layout(fig, "库容 + 出力双轴图", "小时", "库容", height=300)
+
+
+def compare_bar(results):
+    names = list(results.keys())
+    revenues = [results[k]["detail"]["revenue"] for k in names]
+    objectives = [results[k]["detail"]["objective"] for k in names]
+    colors = ["#FFD166" if n == "APSO-LS" else "rgba(34,211,238,0.55)" for n in names]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=names, y=revenues, name="收益", marker_color=colors))
+    fig.add_trace(go.Bar(x=names, y=objectives, name="综合目标", marker_color="rgba(10,132,255,0.55)"))
+    fig.update_layout(barmode="group")
+    return apply_industrial_layout(fig, "不同调度策略对比", "方法", "指标值", height=320)
 
 
 def build_reservoir_scene(storage, params, release, inflow, power, hour):
@@ -982,7 +1495,6 @@ def build_reservoir_scene(storage, params, release, inflow, power, hour):
 
 
 def build_threejs_html(detail, Q, inflow, hour, auto_play):
-
     import json
     import base64
 
@@ -1019,7 +1531,7 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #dfeaf4;
+            background: radial-gradient(circle at 18% 14%, #0f2f56 0%, #08182d 62%, #071220 100%);
         }
         #app {
             width: 100%;
@@ -1031,16 +1543,45 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
             position: absolute;
             left: 18px;
             top: 18px;
-            padding: 8px 10px;
-            background: rgba(0,0,0,0.40);
-            color: #fff;
+            padding: 10px 12px;
+            background: rgba(5,18,36,0.64);
+            color: #dff6ff;
             font-size: 13px;
             line-height: 1.5;
-            border-radius: 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 211, 238, 0.35);
             z-index: 20;
             pointer-events: none;
-            min-width: 120px;
+            min-width: 130px;
             font-family: Arial, sans-serif;
+        }
+        #cameraPanel {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 35;
+            background: rgba(4, 14, 30, 0.56);
+            border: 1px solid rgba(34,211,238,0.28);
+            border-radius: 999px;
+            padding: 6px;
+            backdrop-filter: blur(6px);
+        }
+        .cam-btn {
+            border: 1px solid rgba(34,211,238,0.35);
+            background: rgba(10,132,255,0.16);
+            color: #d6f5ff;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .cam-btn.active {
+            background: rgba(255, 209, 102, 0.18);
+            border-color: rgba(255, 209, 102, 0.78);
+            color: #ffe7ac;
+            font-weight: 700;
         }
         #errorPanel {
             position: absolute;
@@ -1066,6 +1607,12 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
 <body>
 <div id="app">
     <div id="debugPanel"></div>
+    <div id="cameraPanel">
+        <button class="cam-btn active" data-mode="dam">坝体</button>
+        <button class="cam-btn" data-mode="reservoir">水库</button>
+        <button class="cam-btn" data-mode="river">河道</button>
+        <button class="cam-btn" data-mode="auto">自动巡航</button>
+    </div>
     <div id="errorPanel"></div>
 </div>
 
@@ -1094,8 +1641,8 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
         const infoPanel = document.getElementById("debugPanel");
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xdfeaf4);
-        scene.fog = new THREE.Fog(0xdfeaf4, 180, 420);
+        scene.background = new THREE.Color(0x071524);
+        scene.fog = new THREE.Fog(0x0a1f35, 120, 360);
 
         const camera = new THREE.PerspectiveCamera(
             46,
@@ -1122,15 +1669,15 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
         controls.maxPolarAngle = Math.PI * 0.49;
         controls.update();
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.86);
+        const ambient = new THREE.AmbientLight(0xbadfff, 1.10);
         scene.add(ambient);
 
-        const sun = new THREE.DirectionalLight(0xffffff, 0.96);
+        const sun = new THREE.DirectionalLight(0xe8f5ff, 1.20);
         sun.position.set(120, 160, 80);
         scene.add(sun);
 
-        const fill = new THREE.DirectionalLight(0xd8ebff, 0.30);
-        fill.position.set(-100, 60, -90);
+        const fill = new THREE.DirectionalLight(0x7dd8ff, 0.62);
+        fill.position.set(-100, 90, -90);
         scene.add(fill);
 
         const root = new THREE.Group();
@@ -1229,13 +1776,79 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
         }
 
         let state = getStateByHour(DATA.currentHour);
+        let visualWaterLevel = state.waterLevel;
+        let visualQFactor = state.qFactor;
+        let cameraMode = "dam";
+        let autoCameraPhase = 0;
 
+        let autoCamera = false;
+        let autoAngle = 0;
+
+        const cameraModes = {
+            dam: {
+                pos: new THREE.Vector3(150, 120, -20),
+                target: new THREE.Vector3(0, 13, 0)
+            },
+            reservoir: {
+                pos: new THREE.Vector3(-120, 85, 20),
+                target: new THREE.Vector3(-55, 16, 0)
+            },
+            river: {
+                pos: new THREE.Vector3(20, 200, 70),
+                target: new THREE.Vector3(20, 15, 0)
+            }
+        };
+
+  
+
+        const cameraButtons = Array.from(document.querySelectorAll(".cam-btn"));
+        
+        function flyTo(preset){
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+        
+            let t = 0;
+        
+            function move(){
+                t += 0.03;
+                if (t >= 1) return;
+        
+                camera.position.lerpVectors(startPos, preset.pos, t);
+                controls.target.lerpVectors(startTarget, preset.target, t);
+        
+                requestAnimationFrame(move);
+            }
+        
+            move();
+        }
+        
+        cameraButtons.forEach(function(btn){
+            btn.addEventListener("click", function(){
+                const mode = btn.dataset.mode || "dam";
+        
+                cameraButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+        
+                if (mode === "auto"){
+                    autoCamera = true;
+                    return;
+                } else {
+                    autoCamera = false;
+                }
+        
+                const preset = cameraModes[mode];
+                if (preset){
+                    flyTo(preset);
+                }
+            });
+        });
+       
         function updateInfoPanel() {
             infoPanel.innerHTML =
                 "时刻: " + state.hour + "<br>" +
                 "Q: " + state.Q.toFixed(1) + "<br>" +
                 "S: " + state.S.toFixed(1) + "<br>" +
-                "水位: " + state.waterLevel.toFixed(2);
+                "水位: " + visualWaterLevel.toFixed(2);
         }
 
         waterNormalTex.repeat.set(state.rippleRepeat, state.rippleRepeat);
@@ -1252,14 +1865,14 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
 
         function riverHalfWidthBase(x) {
             const t = smoothstep(4.0, 120.0, x);
-        
+
             const Q = state.Q;
-        
+
             // ⭐ 在坝附近放大宽度
             const damBoost = Math.exp(-Math.pow((x - 5.0)/6.0, 2.0)) * 25;
-        
+
             const widthQ = 0.3 * Math.sqrt(Q);
-        
+
             return 8.0 + t * 12.0 + widthQ + damBoost;
         }
 
@@ -1409,9 +2022,12 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
             return x >= 2.0 && x <= 138.0 && Math.abs(z - p.cz) <= p.halfW;
         }
 
+        let powerhouseGlow = null;
+        const animatedWaterMats = [];
+
         function createWaterMaterial(opts) {
             const o = opts || {};
-            return new THREE.MeshStandardMaterial({
+            const mat = new THREE.MeshStandardMaterial({
                 color: o.color !== undefined ? o.color : 0x2d8fd6,
                 transparent: true,
                 opacity: o.opacity !== undefined ? o.opacity : 0.92,
@@ -1424,6 +2040,8 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
                 emissiveIntensity: o.emissiveIntensity !== undefined ? o.emissiveIntensity : 0.12,
                 side: THREE.DoubleSide
             });
+            animatedWaterMats.push(mat);
+            return mat;
         }
 
         function addTerrain() {
@@ -1503,8 +2121,8 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
             geo.computeVertexNormals();
 
             const mat = createWaterMaterial({
-                color: 0x1a4f8f,          // ⭐和河道一致
-                opacity: 0.90,            // ⭐更深一点
+                color: 0x1a4f8f,
+                opacity: 0.90,
                 roughness: 0.2,
                 metalness: 0.05,
                 normalScale: new THREE.Vector2(1.2, 1.2),
@@ -1512,7 +2130,7 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
             });
 
             const mesh = new THREE.Mesh(geo, mat);
-            mesh.renderOrder = 1;   // ⭐关键：水后画
+            mesh.renderOrder = 1;
             dynamicGroup.add(mesh);
         }
 
@@ -1552,13 +2170,11 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
                 emissiveIntensity: 0.07
             });
 
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.renderOrder = 1;   // ⭐关键：水后画
-                dynamicGroup.add(mesh);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.renderOrder = 1;
+            dynamicGroup.add(mesh);
         }
-        
-        
-        
+
         function addRiverWater() {
             const length = 136.0;
             const width = 34.0;
@@ -1598,16 +2214,15 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
                 color: 0x1a4f8f,
                 opacity: 0.90,
                 emissive: new THREE.Color(0x0a1f3a),
-                emissiveIntensity: 0.18,
+                emissiveIntensity: 0.09,
                 roughness: 0.2,
                 metalness: 0.05,
-                normalScale: new THREE.Vector2(1.8, 1.8),
-                emissiveIntensity: 0.09
+                normalScale: new THREE.Vector2(1.8, 1.8)
             });
 
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.renderOrder = 1;   // ⭐关键：水后画
-                dynamicGroup.add(mesh);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.renderOrder = 1;
+            dynamicGroup.add(mesh);
         }
 
         function addShorelineTransitions() {
@@ -1724,6 +2339,23 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
             staticGroup.add(apron);
         }
 
+        function addPowerhouseGlow() {
+            powerhouseGlow = new THREE.Mesh(
+                new THREE.SphereGeometry(3.2, 24, 24),
+                new THREE.MeshStandardMaterial({
+                    color: 0x88e8ff,
+                    emissive: 0x1ac8ff,
+                    emissiveIntensity: 0.25,
+                    transparent: true,
+                    opacity: 0.55,
+                    roughness: 0.2,
+                    metalness: 0.05
+                })
+            );
+            powerhouseGlow.position.set(7.5, terrainHeight(7.5, 0) + 3.8, 0.5);
+            staticGroup.add(powerhouseGlow);
+        }
+
         function loadDam() {
             try {
                 const loader = new THREE.GLTFLoader();
@@ -1825,6 +2457,7 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
 
         addTerrain();
         addApron();
+        addPowerhouseGlow();
         addTreesNatural();
         loadDam();
         rebuildDynamicScene();
@@ -1833,11 +2466,42 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
         window.setDispatchHour = setDispatchHour;
         window.addEventListener("resize", onResize);
 
+        const clock = new THREE.Clock();
+
         function animate() {
             requestAnimationFrame(animate);
 
-            waterNormalTex.offset.x += state.flowOffsetX;
-            waterNormalTex.offset.y += state.flowOffsetY;
+            const dt = Math.min(clock.getDelta(), 0.05);
+            visualWaterLevel += (state.waterLevel - visualWaterLevel) * 0.05;
+            visualQFactor += (state.qFactor - visualQFactor) * 0.05;
+
+            const flowOffsetX = (0.0018 + visualQFactor * 0.0075) * (dt * 60);
+            const flowOffsetY = (0.0010 + visualQFactor * 0.0040) * (dt * 60);
+            waterNormalTex.offset.x += flowOffsetX;
+            waterNormalTex.offset.y += flowOffsetY;
+
+            for (let i = 0; i < animatedWaterMats.length; i++) {
+                animatedWaterMats[i].emissiveIntensity = 0.08 + visualQFactor * 0.20;
+            }
+
+            if (powerhouseGlow && powerhouseGlow.material) {
+                powerhouseGlow.material.emissiveIntensity = 0.18 + visualQFactor * 1.15;
+                powerhouseGlow.material.opacity = 0.38 + visualQFactor * 0.38;
+            }
+
+            updateInfoPanel();
+
+        if (autoCamera){
+            autoAngle += 0.003;
+        
+            const radius = 180;
+        
+            camera.position.x = Math.cos(autoAngle) * radius;
+            camera.position.z = Math.sin(autoAngle) * radius;
+            camera.position.y = 90 + Math.sin(autoAngle * 0.5) * 20;
+        
+            controls.target.set(0, 15, 0);
+        }
 
             controls.update();
             renderer.render(scene, camera);
@@ -1857,42 +2521,51 @@ def build_threejs_html(detail, Q, inflow, hour, auto_play):
 """
     return html
 
-def line_chart(hours, y, title, yname):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=hours, y=y, mode="lines+markers",
-        line=dict(width=3, color="#1f77d0"), marker=dict(size=6, color="#1f77d0")
-    ))
-    return apply_clean_layout(fig, title, "小时", yname, height=270)
-
-
-def multi_line_chart(hours, series_dict, title, yname):
-    fig = go.Figure()
-    for name, y in series_dict.items():
-        fig.add_trace(go.Scatter(
-            x=hours, y=y, mode="lines+markers", name=name,
-            line=dict(width=2), marker=dict(size=5)
-        ))
-    return apply_clean_layout(fig, title, "小时", yname, height=300)
-
-
-def compare_bar(results):
-    names = list(results.keys())
-    revenues = [results[k]["detail"]["revenue"] for k in names]
-    objectives = [results[k]["detail"]["objective"] for k in names]
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=names, y=revenues, name="收益"))
-    fig.add_trace(go.Bar(x=names, y=objectives, name="综合目标"))
-    fig.update_layout(barmode="group")
-    return apply_clean_layout(fig, "不同调度策略对比", "方法", "指标值", height=320)
-
 
 def get_recommendation(results):
     best_name = max(results, key=lambda k: results[k]["detail"]["objective"])
     d = results[best_name]["detail"]
     reason = f"{best_name} 的综合目标函数最高（{d['objective']:.0f}），且兼顾收益与平稳性。"
     return best_name, reason
+
+def generate_dispatch_advice(storage, inflow, release, power, params):
+    advice = []
+
+    level_ratio = (storage - params["S_min"]) / (params["S_max"] - params["S_min"] + 1e-9)
+
+    if level_ratio > 0.85:
+        advice.append({
+            "type": "warning",
+            "title": "高水位风险",
+            "message": "建议增加下泄流量",
+            "action": "increase_release"
+        })
+
+    elif level_ratio < 0.25:
+        advice.append({
+            "type": "warning",
+            "title": "低水位运行",
+            "message": "建议减少出库",
+            "action": "reduce_release"
+        })
+
+    if inflow > release * 1.5:
+        advice.append({
+            "type": "alert",
+            "title": "入流快速增加",
+            "message": "建议提前预泄",
+            "action": "pre_release"
+        })
+
+    if power < 50:
+        advice.append({
+            "type": "suggestion",
+            "title": "发电偏低",
+            "message": "可适当提高出流",
+            "action": "increase_power"
+        })
+
+    return advice
 
 
 def build_alerts(detail, params, hour):
@@ -2004,6 +2677,10 @@ with st.sidebar:
 
     st.markdown("### 🎬 演示模式")
 
+    demo_speed = st.slider("演示速度（倍速）", min_value=0.5, max_value=3.0, value=float(st.session_state.demo_speed),
+                           step=0.1)
+    st.session_state.demo_speed = demo_speed
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -2026,7 +2703,6 @@ with st.sidebar:
     else:
         hour = 0
 
-
 # =========================================================
 # 6. 主界面
 # =========================================================
@@ -2038,6 +2714,30 @@ inflow, price, params, results = run_all_methods(
 selected = results[algo]
 Q = selected["Q"]
 detail = selected["detail"]
+advice = generate_dispatch_advice(
+    storage=detail["S"][hour],
+    inflow=inflow[hour],
+    release=Q[hour],
+    power=detail["power_mw"][hour],
+    params=params
+)
+if "action" in st.session_state and st.session_state["action"]:
+
+    action = st.session_state["action"]
+
+    if action == "increase_release":
+        Q[hour] *= 1.1
+
+    elif action == "reduce_release":
+        Q[hour] *= 0.9
+
+    elif action == "increase_power":
+        Q[hour] *= 1.05
+
+    elif action == "pre_release":
+        Q[hour] *= 1.2
+
+    st.session_state["action"] = None
 hours = np.arange(24)
 best_name, best_reason = get_recommendation(results)
 table_data = build_result_table(results)
@@ -2046,25 +2746,55 @@ display_name = "APSO-LS" if best_name == "APSO-LS" else best_name
 
 st.markdown("""
 <div class="dashboard-title">
-    <h1>水电站智能调度可视化监控大屏</h1>
-    <p>Hydropower Intelligent Dispatch Visualization Center · 稳定版工程升级 </p>
+    <h1>🌊 智调水电：水电站智能优化调度与数字孪生仿真平台</h1>
+    <p>面向新能源消纳的 24h 优化调度与三维联动仿真系统</p>
     <div class="status-chip-wrap">
-        <div class="status-chip">运行模式：日内优化调度</div>
-        <div class="status-chip">三维引擎：Three.js Embedded</div>
-        <div class="status-chip">求解核心：PSO / GA / APSO-LS</div>
-        <div class="status-chip">数据链路：Python → JS 驱动</div>
+        <div class="status-chip">🌊 三维水库-坝体联动</div>
+        <div class="status-chip">⚡ 多目标优化调度</div>
+        <div class="status-chip">📊 24小时动态演示</div>
+        <div class="status-chip">🛰 数字孪生可视化</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 top1, top2, top3, top4, top5 = st.columns(5)
+best_rev = results[best_name]["detail"]["revenue"]
+rev_delta = detail["revenue"] - best_rev
 top1.metric("推荐策略", display_name)
 top2.metric("当前策略", algo)
-top3.metric("当前策略收益", f"{detail['revenue']:.0f} 元")
-top4.metric("综合目标", f"{detail['objective']:.0f}")
+top3.metric("当前策略收益", f"{detail['revenue']:.0f} 元", delta=f"{rev_delta:.0f} vs 最优")
+top4.metric("综合目标", f"{detail['objective']:.0f}",
+            delta=f"{detail['objective'] - results[best_name]['detail']['objective']:.0f}")
 top5.metric("当前时刻", f"{(hour if not auto_play else 0):02d}:00")
 
+st.markdown(f'<div class="kpi-best">⭐ 最优策略高亮：<b>{best_name}</b> ｜ 收益 {best_rev:.0f} 元</div>',
+            unsafe_allow_html=True)
+
+if st.session_state.demo_mode:
+    st.markdown('<div class="demo-running">🟢 DEMO RUNNING</div>', unsafe_allow_html=True)
+
 st.success(f"系统推荐：{best_name}。{best_reason}")
+
+st.markdown("### 🧠 调度决策建议")
+
+if not advice:
+    st.success("✔ 当前状态良好，无需调整")
+else:
+    cols = st.columns(len(advice))
+
+    for i, a in enumerate(advice):
+        with cols[i]:
+            if a["type"] == "alert":
+                st.error(f"🚨 {a['title']}")
+            elif a["type"] == "warning":
+                st.warning(f"⚠ {a['title']}")
+            else:
+                st.info(f"💡 {a['title']}")
+
+            st.caption(a["message"])
+
+            if st.button("执行", key=f"act_{i}"):
+                st.session_state["action"] = a["action"]
 
 with st.expander("系统说明", expanded=False):
     st.write(
@@ -2076,9 +2806,48 @@ alerts = build_alerts(detail, params, hour if not auto_play else 0)
 for msg in alerts:
     st.info(msg)
 
+st.markdown("""
+<style>
 
+/* ===== 全局文字强化 ===== */
 
+h1, h2, h3, h4 {
+    color: #111827 !important;
+}
 
+.panel-title {
+    color: #111827 !important;
+}
+
+.main-3d-title-left {
+    color: #111827 !important;
+}
+
+.status-chip {
+    color: #111827 !important;
+    background: #E6F4FF !important;
+    border: 1px solid #93C5FD !important;
+}
+
+.analysis-title {
+    color: #111827 !important;
+}
+
+.panel-card b,
+.panel-card strong {
+    color: #111827 !important;
+}
+
+.kpi-best {
+    color: #92400E !important;
+}
+
+.stAlert {
+    color: #111827 !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 def render_dashboard_main(hour, strategy_override=None):
     current_algo = strategy_override if strategy_override is not None else algo
@@ -2086,7 +2855,7 @@ def render_dashboard_main(hour, strategy_override=None):
     current_Q = current_result["Q"]
     current_detail = current_result["detail"]
 
-    left_col, center_col, right_col = st.columns([1.15, 2.9, 1.15], gap="medium")
+    left_col, center_col, right_col = st.columns([1.05, 3.2, 1.15], gap="medium")
 
     with left_col:
         st.markdown('<div class="panel-card">', unsafe_allow_html=True)
@@ -2184,20 +2953,40 @@ def render_dashboard_main(hour, strategy_override=None):
 
         with trend1:
             st.plotly_chart(
-                line_chart(hours, current_Q, f"{current_algo} 调度出流曲线", "出流(m³/s)"),
+                line_chart(hours, current_Q, f"{current_algo} 调度出流曲线", "出流(m³/s)", current_hour=hour,
+                           color="#22D3EE"),
                 width="stretch"
             )
 
         with trend2:
             st.plotly_chart(
-                line_chart(np.arange(25), current_detail["S"], f"{current_algo} 库容变化曲线", "库容"),
+                line_chart(np.arange(25), current_detail["S"], f"{current_algo} 库容变化曲线", "库容",
+                           current_hour=hour, color="#0A84FF"),
                 width="stretch"
             )
 
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with right_col:
+        st.markdown('<div class="analysis-title">📈 深度分析区</div>', unsafe_allow_html=True)
+        a1, a2 = st.columns(2)
+        with a1:
+            st.plotly_chart(build_inflow_price_dual_axis(hours, inflow, price, current_hour=hour), width="stretch")
+        with a2:
+            st.plotly_chart(build_strategy_contrast_chart(hours, results, current_hour=hour), width="stretch")
 
+        b1, b2 = st.columns(2)
+        with b1:
+            st.plotly_chart(
+                build_storage_power_dual_axis(hours, current_detail["S"][:-1], current_detail["power_mw"],
+                                              current_hour=hour),
+                width="stretch"
+            )
+        with b2:
+            st.plotly_chart(build_revenue_smooth_dual_axis(results), width="stretch")
+
+    with right_col:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">KPI 指标看板</div>', unsafe_allow_html=True)
         st.metric("总收益", f"{current_detail['revenue']:.0f} 元")
         st.metric("平滑指标", f"{current_detail['smooth_penalty']:.2f}")
         st.metric("弃水量", f"{current_detail['spill']:.4f}")
@@ -2213,7 +3002,7 @@ def render_dashboard_main(hour, strategy_override=None):
         st.markdown('</div>', unsafe_allow_html=True)
 
 
-strategies = ["Rule", "PSO", "APSO-LS"]
+strategies = ["Rule", "PSO", "APSO-LS", "GA"]
 
 if st.session_state.demo_mode:
     demo_strategy = strategies[st.session_state.demo_strategy_idx]
@@ -2225,10 +3014,10 @@ if st.session_state.demo_mode:
     if st.session_state.demo_hour >= 24:
         st.session_state.demo_hour = 0
         st.session_state.demo_strategy_idx = (
-            st.session_state.demo_strategy_idx + 1
-        ) % len(strategies)
+                                                     st.session_state.demo_strategy_idx + 1
+                                             ) % len(strategies)
 
-    time.sleep(0.6)
+    time.sleep(max(0.12, 0.6 / max(0.1, st.session_state.demo_speed)))
     st.rerun()
 
 if page_mode == "单策略分析":
@@ -2236,10 +3025,10 @@ if page_mode == "单策略分析":
         t = st.session_state.play_hour
         render_dashboard_main(t)
         st.session_state.play_hour = (t + 1) % 24
-        time.sleep(0.5)
+        time.sleep(max(0.12, 0.5 / max(0.1, st.session_state.demo_speed)))
         st.rerun()
     else:
-        st.session_state.play_hour = hour   # ⭐关键
+        st.session_state.play_hour = hour
         render_dashboard_main(hour)
 
     st.markdown("---")
@@ -2247,24 +3036,25 @@ if page_mode == "单策略分析":
     row_a1, row_a2 = st.columns(2)
     with row_a1:
         st.plotly_chart(
-            line_chart(hours, inflow, "24小时入流曲线", "入流(m³/s)"),
+            line_chart(hours, inflow, "24小时入流曲线", "入流(m³/s)", current_hour=hour, color="#22D3EE"),
             width="stretch"
         )
     with row_a2:
         st.plotly_chart(
-            line_chart(hours, price, "24小时电价曲线", "电价"),
+            line_chart(hours, price, "24小时电价曲线", "电价", current_hour=hour, color="#0A84FF"),
             width="stretch"
         )
 
     row_b1, row_b2 = st.columns(2)
     with row_b1:
         st.plotly_chart(
-            line_chart(hours, detail["power_mw"], f"{algo} 出力曲线", "功率(MW)"),
+            line_chart(hours, detail["power_mw"], f"{algo} 出力曲线", "功率(MW)", current_hour=hour, color="#22D3EE"),
             width="stretch"
         )
     with row_b2:
         st.plotly_chart(
-            line_chart(hours, detail["cum_revenue"], f"{algo} 累计收益曲线", "累计收益(元)"),
+            line_chart(hours, detail["cum_revenue"], f"{algo} 累计收益曲线", "累计收益(元)", current_hour=hour,
+                       color="#F59E0B"),
             width="stretch"
         )
 
@@ -2295,7 +3085,8 @@ else:
             hours,
             {k: results[k]["Q"] for k in results.keys()},
             "不同策略出流曲线对比",
-            "出流(m³/s)"
+            "出流(m³/s)",
+            current_hour=hour
         ),
         width="stretch"
     )
@@ -2307,7 +3098,8 @@ else:
                 np.arange(25),
                 {k: results[k]["detail"]["S"] for k in results.keys()},
                 "不同策略库容变化对比",
-                "库容"
+                "库容",
+                current_hour=hour
             ),
             width="stretch"
         )
@@ -2317,7 +3109,8 @@ else:
                 hours,
                 {k: results[k]["detail"]["power_mw"] for k in results.keys()},
                 "不同策略出力曲线对比",
-                "功率(MW)"
+                "功率(MW)",
+                current_hour=hour
             ),
             width="stretch"
         )
